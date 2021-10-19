@@ -21,8 +21,5 @@ We are about to find our ;P
 * .save()
 * .object.create()
 
-homework crate some users, some posts and categories
-send JSON as the homework...
-
 ### Models
 It is a bit like a table inside a database, an object
