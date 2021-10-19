@@ -15,5 +15,14 @@ We are about to find our ;P
 * python manage.py sqlmigrate press 0001 (to check SQL commands)
 * python manage.py shell
 
+## DB Commands
+* from press.models import Category
+* Category.objects
+* .save()
+* .object.create()
+
+homework crate some users, some posts and categories
+send JSON as the homework...
+
 ### Models
 It is a bit like a table inside a database, an object
