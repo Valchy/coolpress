@@ -5,11 +5,13 @@ CoolPress is an application to show the power of web development using Django
 
 ## How to Install
 We are about to find our ;P
+Make coolpress folder "source root" after django-admin command
 
 ## Commands
 * django-admin startproject coolpress (to init the project)
 * python manage.py startapp press (to start the app)
 * python manage.py runserver (run the server / command we created)
+* python manage.py createsuperuser
 * python manage.py makemigrations (make changes for models)
 * python manage.py migrate (update the changes)
 * python manage.py sqlmigrate press 0001 (to check SQL commands)
@@ -27,6 +29,11 @@ We are about to find our ;P
 * model.update()
 * model.values()
 * model.exclude()
+
+* print(model.values('category__label').query) => prints the SQL query
+* model.values()[:3] => returns the top three ones only
+* model.last().delete() => deletes last entity
+* model.order_by('-last_update') => orders in reverse order
 
 * python manage.py dumpdata --all --indent 4 --output sample_posts.json
 * python manage.py loaddata sample_posts.json
