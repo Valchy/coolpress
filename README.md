@@ -13,7 +13,9 @@ We are about to find our ;P
 * python manage.py makemigrations (make changes for models)
 * python manage.py migrate (update the changes)
 * python manage.py sqlmigrate press 0001 (to check SQL commands)
+* python manage.py loaddata <name_of_file_without.\>
 * python manage.py shell
+* python manage.py flush
 
 ## DB Commands (in the shell)
 * from press.models import <name_of_model>
