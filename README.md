@@ -26,6 +26,9 @@ We are about to find our ;P
 * model.values()
 * model.exclude()
 
+* python manage.py dumpdata --all --indent 4 --output sample_posts.json
+* python manage.py loaddata sample_posts.json
+
 ### Models
 It is a bit like a table inside a database, an object.
 In the coolpress example always create the Django users before the CoolUsers.
