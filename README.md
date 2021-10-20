@@ -15,11 +15,17 @@ We are about to find our ;P
 * python manage.py sqlmigrate press 0001 (to check SQL commands)
 * python manage.py shell
 
-## DB Commands
-* from press.models import Category
-* Category.objects
-* .save()
-* .object.create()
+## DB Commands (in the shell)
+* from press.models import <name_of_model>
+* model = <name_of_model>.objects
+* model.save()
+* model.create()
+* model.delete()
+* model.get()
+* model.update()
+* model.values()
+* model.exclude()
 
 ### Models
-It is a bit like a table inside a database, an object
+It is a bit like a table inside a database, an object.
+In the coolpress example always create the Django users before the CoolUsers.
