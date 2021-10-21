@@ -16,6 +16,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+# This is the main routing file
+# eg for an API we would add another one called 'api/'
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('press.urls')),

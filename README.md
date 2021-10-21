@@ -41,3 +41,7 @@ Make coolpress folder "source root" after django-admin command
 ### Models
 It is a bit like a table inside a database, an object.
 In the coolpress example always create the Django users before the CoolUsers.
+
+### Views
+This is where all the routing takes place.
+URLs and requests get sent and received.
