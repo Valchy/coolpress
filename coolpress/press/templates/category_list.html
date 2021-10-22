@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}All Post Categories{% endblock %}
+
+{% block content %}
+    {% if categories %}
+    <h1 class="my-5">
+        <a href="/" class="btn btn-secondary mr-3">Back</a>
+        Listing all possible post categories
+    </h1>
+    {% endif %}
+
+    {% for category in categories %}
+    <div class="card px-3 py-3 mb-5">
+        <h2><ins>{{category.label}}</ins></h2>
+        <span>#{{category.slug}} - {{category.available_posts}} posts</span>
+        <a href="/category/{{category.slug}}" class="btn btn-primary mt-3 col-2">View posts</a>
+    </div>
+    {% endfor %}
+{% endblock %}

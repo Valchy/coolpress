@@ -1,24 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{% block title %} {{title|default:'CoolPress'}}{% endblock title %}</title>
+{% extends 'base.html' %}
+{% block title %}Post - {{post.title}}{% endblock %}
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
-</head>
+{% block content %}
+    <h1 class="my-5">
+        <a href="/" class="btn btn-secondary mr-3">Back</a>
+        {{post.title}}
+    </h1>
 
-<body>
-    <h1>The asked post id {post.id}</h1>
+    <p>Showing post with ID: <b>{{post.id}}</b></p>
 
-    <ul>
-        <li>{post.title}</li>
-        <li>{post.body}</li>
-        <li>{post.category.label}</li>
-        <li>{post.last_update}</li>
-    </ul>
-
-    <p>{post.author.user.username}</p>
-</body>
-</html>
+    <div class="card mb-3 post">
+        <div class="row no-gutters">
+            <div class="{% if post.image_link %}col-md-12{% else %}col-md-12{% endif %}">
+                <div class="card-header">
+                    #{{post.category.slug}}
+                </div>
+                <div class="card-body">
+                    <p class="card-text"><small class="text-muted">{{post.last_update}}</small></p>
+                    <p class="card-text">{{post.body|urlize}}</p>
+                    <p class="card-text">By: <b>{{post.author.user.username}}</b></p>
+                </div>
+            </div>
+            {% if post.image_link %}
+            <div class="col-md-12 post-image-box">
+                <img style="width: 100%; height: 100%; object-fit: cover;" class="post-image" src="{{post.image_link}}" alt="{{post.title}}">
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

@@ -1,23 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Home Page</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
-</head>
+{% extends 'base.html' %}
+{% block title %}Hello Django World{% endblock %}
+{% block content %}
+    <h1 class="mt-5">Welcome to the Home Page</h1>
+    <p>This is my first Django app - <i>Valeri Sabev</i></p>
 
-<body>
-    <div class="container">
-        <h1 class="mt-5">Welcome to the Home Page</h1>
-        <p>This is my first Django app - <i>Valeri Sabev</i></p>
-
-        <div class="mt-5">
-            <a href="/posts" target="_BLANK" class="btn btn-primary mr-3">Check out the posts</a>
-            <a href="/api" target="_BLANK" class="btn btn-primary mr-3">View the API</a>
-            <a href="/admin" target="_BLANK" class="btn btn-primary">Open the admin</a>
-        </div>
+    <div class="mt-5">
+        <a href="/posts" class="btn btn-primary mr-3">Posts</a>
+        <a href="/categories" class="btn btn-primary mr-3">Categories</a>
+        <a href="/api" target="_BLANK" class="btn btn-primary mr-3">View the API</a>
+        <a href="/admin" target="_BLANK" class="btn btn-primary">Open the admin</a>
     </div>
-</body>
-</html>
+{% endblock %}

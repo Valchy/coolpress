@@ -1,15 +1,13 @@
 {% extends 'base.html' %}
-{% block title %}All Beautiful Posts{% endblock %}
+{% block title %}All Posts with #{{category}}{% endblock %}
 
 {% block content %}
-    {% if post_list %}
     <h1 class="my-5">
-            <a href="/" class="btn btn-secondary mr-3">Back</a>
-            Applied Python Module news
-        </h1>
-    {% endif %}
+        <a href="/" class="btn btn-secondary mr-3">Back</a>
+        Listing all possible posts for "{{category}}" category
+    </h1>
 
-    {% for post in post_list %}
+    {% for post in posts %}
     <div class="card mb-3 post">
         <div class="row no-gutters">
             {% if post.image_link %}
@@ -19,7 +17,7 @@
             {% endif %}
             <div class="{% if post.image_link %}col-md-8{% else %}col-md-12{% endif %}">
                 <div class="card-header">
-                    {{post.category.slug}}
+                    #{{post.category.slug}}
                 </div>
                 <div class="card-body">
                     <h5 class="card-title">{{post.title}}</h5>
@@ -28,14 +26,14 @@
                     <p class="card-text">{{post.author.user.username}}</p>
                 </div>
                 <div class="card-footer bg-transparent border-success">
-                    <a href="{% url 'posts-detail' post.id %}" class="btn btn-primary">View post</a>
+                    <a href="{% url 'posts-detail' post.id %}" class="btn btn-primary">Details</a>
                 </div>
             </div>
         </div>
     </div>
     {% empty %}
 
-    <p class="text-center font-weight-bold">
+    <p class="text-center font-weight-bold d-flex flex-column align-items-center">
         There are no posts yet for this category, let's create some :D
         <a href="/admin" class="btn btn-primary col-2 mt-3">Go to admin</a>
     </p>
