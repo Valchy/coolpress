@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Post - {{post.title}}{% endblock %}
+
+{% block content %}
+    <h1 class="my-5">
+        <a href="/" class="btn btn-secondary mr-3">Back</a>
+        {{post.title}}
+    </h1>
+
+    <p>Showing post with ID: <b>{{post.id}}</b></p>
+
+    <div class="card mb-3 post">
+        <div class="row no-gutters">
+            <div class="{% if post.image_link %}col-md-12{% else %}col-md-12{% endif %}">
+                <div class="card-header">
+                    #{{post.category.slug}}
+                </div>
+                <div class="card-body">
+                    <p class="card-text"><small class="text-muted">{{post.last_update}}</small></p>
+                    <p class="card-text">{{post.body|urlize}}</p>
+                    <p class="card-text">By: <b>{{post.author.user.username}}</b></p>
+                </div>
+            </div>
+            {% if post.image_link %}
+            <div class="col-md-12 post-image-box">
+                <img style="width: 100%; height: 100%; object-fit: cover;" class="post-image" src="{{post.image_link}}" alt="{{post.title}}">
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

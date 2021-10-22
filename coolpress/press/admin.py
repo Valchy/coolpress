@@ -23,17 +23,12 @@ admin.site.register(User, UserAdmin)
 
 
 class CoolUserAdmin(admin.ModelAdmin):
-    list_display = (
-        'user', 'github_profile', 'view_post_link', 'gh_repositories', 'gravatar_link')
+    list_display = ('user', 'github_profile', 'view_post_link', 'gh_repositories', 'gravatar_link')
     list_filter = ('gh_repositories',)
 
     def view_post_link(self, obj):
         count = obj.post_set.count()
-        url = (
-                reverse("admin:press_post_changelist")
-                + "?"
-                + urlencode({"author__id": f"{obj.id}"})
-        )
+        url = (reverse("admin:press_post_changelist") + "?" + urlencode({"author__id": f"{obj.id}"}))
         label = f'Posts' if count > 1 else 'Post'
         return format_html(f'<a href="{url}">{count} {label}</a>', url, count)
 
@@ -48,15 +43,11 @@ class CategoryAdmin(admin.ModelAdmin):
 
     def view_post_link(self, obj):
         count = obj.post_set.count()
-        url = (
-                reverse("admin:press_post_changelist")
-                + "?"
-                + urlencode({"category__id": f"{obj.id}"})
-        )
+        url = (reverse("admin:press_post_changelist") + "?" + urlencode({"category__id": f"{obj.id}"}))
         label = f'Posts' if count > 1 else 'Post'
         return format_html(f'<a href="{url}">{count} {label}</a>', url, count)
 
-    view_post_link.short_description = "Post"
+    view_post_link.short_description = 'Post'
 
 
 admin.site.register(Category, CategoryAdmin)
@@ -65,7 +56,7 @@ admin.site.register(Category, CategoryAdmin)
 class PostAdmin(admin.ModelAdmin):
     date_hierarchy = 'creation_date'
     list_filter = ('category', 'status')
-    search_fields = ("title", "body")
+    search_fields = ('title', 'body')
     list_display = ('title', 'author', 'last_update', 'status', 'category', 'image_link')
 
 
