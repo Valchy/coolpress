@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Hello Django World{% endblock %}
+{% block content %}
+    <h1 class="mt-5">Welcome to the Home Page</h1>
+    <p>This is my first Django app - <i>Valeri Sabev</i></p>
+
+    <div class="mt-5">
+        <a href="/posts" class="btn btn-primary mr-3">Posts</a>
+        <a href="/categories" class="btn btn-primary mr-3">Categories</a>
+        <a href="/api" target="_BLANK" class="btn btn-primary mr-3">View the API</a>
+        <a href="/admin" target="_BLANK" class="btn btn-primary">Open the admin</a>
+    </div>
+{% endblock %}
