@@ -18,7 +18,7 @@
 				<a class="nav-link" href="{% url 'default_api' %}">API</span></a>
 			</li>
 			<li class="nav-item active">
-				<a class="nav-link" href="{% url 'posts-list' %}">Latest Posts</span></a>
+				<a class="nav-link" href="{% url 'posts-list' %}">Posts</span></a>
 			</li>
 			<li class="nav-item dropdown">
 				<a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -38,13 +38,14 @@
 		<ul class="navbar-nav ml-auto mr-5">
 			{% if user.is_authenticated %}
 				<li class="nav-item dropdown ">
-					<a class="nav-link dropdown-toggle" href="#" id="navUser" role="button"
-					   data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-						{{ user.username }}
+					<a class="nav-link dropdown-toggle" href="#" id="navUser" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 						{% if cooluser.gravatar_link %}
-						<img class="gravatar-navbar-icon" src="{{cooluser.gravatar_link}}" alt="">
+							<img class="gravatar-navbar-icon" src="{{cooluser.gravatar_link}}" alt="">
 						{% endif %}
+
+						{{user.username}}
 					</a>
+
 					<div class="dropdown-menu" aria-labelledby="navUser">
 						<a class="dropdown-item" href="{% url 'post-add' %}">New Post</a>
 						<a class="dropdown-item" href="{% url 'logout' %}">Log Out</a>
@@ -63,22 +64,18 @@
 {% if header %}
 	<h1 class="my-5 d-flex justify-content-between">
 		<div>
-			<a href="{% url 'index' %}" class="btn btn-secondary mr-3">Back</a>
+			{% if back_btn_url %}
+				<a href="{% url back_btn_url %}" class="btn btn-secondary mr-3">Back</a>
+			{% endif %}
 			<span>
-				{% block header %}
-					{{header}}
-				{% endblock header %}
+				{{header}}
 			</span>
 		</div>
-		{% if user.is_authenticated %}
+		{% if user.is_authenticated and header_btn_text and header_btn_url %}
 			<div class="text-right">
-				{% block header_btn_url %}
-				<a class="btn btn-info" role="button" href="{{header_btn_url}}">
-					{% block header_btn_text %}
-						{{header_btn_text}}
-					{% endblock header_btn_text %}
+				<a class="btn btn-success" role="button" href="{% url header_btn_url %}">
+					{{header_btn_text}}
 				</a>
-				{% endblock header_btn_url %}
 			</div>
 		{% endif %}
 	</h1>

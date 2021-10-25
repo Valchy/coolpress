@@ -5,7 +5,7 @@
 
 <!-- Data for the navbar -->
 {% block navbar %}
-	{% with header="Latest Posts" header_btn_text="New Post" %}
+	{% with header="Latest Posts" back_btn_url="index" header_btn_text="New Post" header_btn_url="post-add" %}
 		{% include 'navbar.html' %}
 	{% endwith %}
 {% endblock %}
@@ -32,7 +32,10 @@
 						<p class="card-text">{{post.author.user.username}}</p>
 					</div>
 					<div class="card-footer bg-transparent border-success">
-						<a href="{% url 'posts-detail' post.id %}" class="btn btn-primary">View post</a>
+						<a href="{% url 'post-detail' post.id %}" class="btn btn-primary">View post</a>
+						{% if user.is_authenticated and cooluser == post.author%}
+							<a href="{% url 'post-update' post.id %}" class="btn btn-info">Update post</a>
+						{% endif %}
 					</div>
 				</div>
 			</div>

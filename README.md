@@ -17,7 +17,8 @@ Make coolpress folder "source root" after django-admin command
 * python manage.py sqlmigrate press 0001 (to check SQL commands)
 * python manage.py loaddata <name_of_file_without.\>
 * python manage.py shell
-* python manage.py flush
+* python manage.py flush 
+* python manage.py collectstatic
 
 ## DB Commands (in the shell)
 * from press.models import <name_of_model>
