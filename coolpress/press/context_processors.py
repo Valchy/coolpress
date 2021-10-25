@@ -1,4 +1,9 @@
-from press.models import Category
+from .models import Category
+
+
+def categories_processor(request):
+	categories = Category.objects.all()
+	return {'categories': categories}
 
 
 def cooluser_processor(request):
@@ -8,8 +13,3 @@ def cooluser_processor(request):
 		cooluser = request.user.cooluser
 
 	return {'cooluser': cooluser}
-
-
-def categories_processor(request):
-	categories = Category.objects.all()
-	return {'categories': categories}

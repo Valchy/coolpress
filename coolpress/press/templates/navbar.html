@@ -1,0 +1,85 @@
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+	<a class="navbar-brand" href="{% url 'index' %}">CoolPress</a>
+
+	<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+		<span class="navbar-toggler-icon"></span>
+	</button>
+
+	<div class="collapse navbar-collapse" id="navbarNavDropdown">
+		<ul class="navbar-nav justify-content-end">
+			<li class="nav-item active">
+				<a class="nav-link" href="{% url 'about-page' %}">About</span></a>
+			</li>
+			<li class="nav-item active">
+				<a class="nav-link" href="/admin">Admin</span></a>
+			</li>
+			<li class="nav-item active">
+				<a class="nav-link" href="{% url 'default_api' %}">API</span></a>
+			</li>
+			<li class="nav-item active">
+				<a class="nav-link" href="{% url 'posts-list' %}">Latest Posts</span></a>
+			</li>
+			<li class="nav-item dropdown">
+				<a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					Categories
+				</a>
+				<div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+					{% for category in categories %}
+						<a class="dropdown-item" href="{% url 'category-posts' category.id %}">{{category.label}}</a>
+					{% endfor %}
+
+					<div class="dropdown-divider"></div>
+					<a class="dropdown-item" href="{% url 'category-list' %}">Category List</a>
+				</div>
+			</li>
+		</ul>
+
+		<ul class="navbar-nav ml-auto mr-5">
+			{% if user.is_authenticated %}
+				<li class="nav-item dropdown ">
+					<a class="nav-link dropdown-toggle" href="#" id="navUser" role="button"
+					   data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						{{ user.username }}
+						{% if cooluser.gravatar_link %}
+						<img class="gravatar-navbar-icon" src="{{cooluser.gravatar_link}}" alt="">
+						{% endif %}
+					</a>
+					<div class="dropdown-menu" aria-labelledby="navUser">
+						<a class="dropdown-item" href="{% url 'post-add' %}">New Post</a>
+						<a class="dropdown-item" href="{% url 'logout' %}">Log Out</a>
+					</div>
+				</li>
+			{% else %}
+				<li class="nav-item">
+					<a class="btn btn-primary" href="{% url 'login' %}">Log In</a>
+				</li>
+			{% endif %}
+		</ul>
+	</div>
+</nav>
+
+<!-- Header -->
+{% if request.get_full_path != '/' %}
+	<h1 class="my-5 d-flex justify-content-between">
+		<div>
+			<a href="{% url 'index' %}" class="btn btn-secondary mr-3">Back</a>
+			<span>
+				{% block header %}
+					{{header}}
+				{% endblock header %}
+			</span>
+		</div>
+		{% if user.is_authenticated %}
+			<div class="text-right">
+				{% block header_btn_url %}
+				<a class="btn btn-info new-post-btn" role="button" href="{{header_btn_url}}">
+					{% block header_btn_text %}
+						{{header_btn_text}}
+					{% endblock header_btn_text %}
+				</a>
+				{% endblock header_btn_url %}
+			</div>
+		{% endif %}
+	</h1>
+{% endif %}

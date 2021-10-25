@@ -5,15 +5,16 @@
     {% if categories %}
     <h1 class="my-5">
         <a href="/" class="btn btn-secondary mr-3">Back</a>
-        Listing all possible post categories
+        All possible Post Categories
     </h1>
     {% endif %}
 
+    <!-- MAKE THIS INTO A TABLE SO IT IS MORE BEAUTIFUL -->
     {% for category in categories %}
-    <div class="card px-3 py-3 mb-5">
-        <h2><ins>{{category.label}}</ins></h2>
-        <span>#{{category.slug}} - {{category.available_posts}} posts</span>
-        <a href="/category/{{category.slug}}" class="btn btn-primary mt-3 col-2">View posts</a>
-    </div>
+        <div class="card px-3 py-3 mb-5">
+            <h2><ins>{{category.label}}</ins></h2>
+            <span>#{{category.slug}} - {{category.available_posts}} posts</span>
+            <a href="/category/{{category.slug}}" class="btn btn-primary mt-3 col-2">View posts</a>
+        </div>
     {% endfor %}
 {% endblock %}

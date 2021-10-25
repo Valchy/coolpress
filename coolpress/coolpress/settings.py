@@ -125,6 +125,6 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Allows for accessing data in all views
+# Allows for accessing data in all views (try to add it directly to the settings object)
 TEMPLATES[0]['OPTIONS']['context_processors'].append('press.context_processors.cooluser_processor')
 TEMPLATES[0]['OPTIONS']['context_processors'].append('press.context_processors.categories_processor')
