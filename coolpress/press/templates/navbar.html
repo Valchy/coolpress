@@ -60,20 +60,20 @@
 </nav>
 
 <!-- Header -->
-{% if request.get_full_path != '/'%}
+{% if header %}
 	<h1 class="my-5 d-flex justify-content-between">
 		<div>
 			<a href="{% url 'index' %}" class="btn btn-secondary mr-3">Back</a>
 			<span>
 				{% block header %}
-					-{{header}}-
+					{{header}}
 				{% endblock header %}
 			</span>
 		</div>
 		{% if user.is_authenticated %}
 			<div class="text-right">
 				{% block header_btn_url %}
-				<a class="btn btn-info new-post-btn" role="button" href="{{header_btn_url}}">
+				<a class="btn btn-info" role="button" href="{{header_btn_url}}">
 					{% block header_btn_text %}
 						{{header_btn_text}}
 					{% endblock header_btn_text %}
