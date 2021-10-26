@@ -31,6 +31,11 @@ def post_detail(request, post_id):
 	return render(request, 'posts/posts_detail.html', {'post': post})
 
 
+# Posts filtered by specific author
+class PostsByAuthor(TemplateView):
+	template_name = 'posts/posts_author.html'
+
+
 # Displaying all posts
 def post_list(request):
 	post_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-pk')[:20]

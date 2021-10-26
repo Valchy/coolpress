@@ -9,7 +9,8 @@ urlpatterns = [
 
     # Post views
     path('posts/', views.post_list, name='posts-list'), # All posts
-    path('post/<int:post_id>/', views.post_detail, name='post-detail'), # Specific post
+    path('posts/<str:post_author>/', views.PostsByAuthor.as_view(), name='post-author'), # Posts by author
+    path('post/<int:post_id>/', views.post_detail, name='post-detail'), # Specific post by id
     path('post/add/', views.post_update, name='post-add'), # Add a post
     path('post/update/<int:post_id>/', views.post_update, name='post-update'), # Update a post
 
