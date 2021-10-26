@@ -42,6 +42,19 @@ def post_list(request):
 	return render(request, 'posts/posts_list.html', {'post_list': post_list})
 
 
+# class PostList(ListView):
+#     model = Post
+#     paginate_by = 2
+#     context_object_name = 'post_list'
+#     template_name = 'posts_list.html'
+#
+#     def get_queryset(self):
+#         queryset = super(PostList, self).get_queryset()
+#         category_slug = self.kwargs['category_slug']
+#         category = get_object_or_404(Category, slug=category_slug)
+#         return  queryset.filter(category=category)
+
+
 @login_required
 def post_update(request, post_id=None):
 	post = None
