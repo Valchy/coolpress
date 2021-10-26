@@ -4,7 +4,7 @@ from django.shortcuts import render, get_object_or_404
 
 # Create your views here.
 from django.urls import reverse
-from press.models import Post, PostStatus
+from press.models import Post, PostStatus, Category
 from django.views.generic import TemplateView
 
 from press.forms import PostForm
@@ -70,16 +70,7 @@ def post_update(request, post_id=None):
 
 # Displaying all categories and how many posts they have
 def category_list(request):
-	categories = []
-
-	for category in Category.objects.all():
-		categories.append({
-			'slug': category.slug,
-			'label': category.label,
-			'available_posts': str(Post.objects.filter(category=category.id).count())
-		})
-
-	return render(request, 'categories/category_list.html', {'categories': categories})
+	return render(request, 'categories/category_list.html')
 
 
 # Displaying all posts with a certain category

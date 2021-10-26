@@ -16,7 +16,7 @@
         <p>Showing post with ID: <b>{{post.id}}</b></p>
         <div class="text-right">
             {% if user.is_authenticated and cooluser == post.author and post.id %}
-                <a class="btn btn-info new-post-btn" role="button" target='_blank' href="{% url 'post-update' post.id %}">
+                <a class="btn btn-info new-post-btn" role="button" href="{% url 'post-update' post.id %}">
                     Update Post
                 </a>
             {% endif %}

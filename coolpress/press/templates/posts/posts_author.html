@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+<!-- Tab title -->
+{% block title %} Posts by Valeri Sabev {% endblock %}
+
+<!-- Data for the navbar -->
+{% block navbar %}
+	{% with header="Posts by Valeri Sabev" back_btn_url="posts-list" header_btn_text="New Post" header_btn_url="post-add" %}
+		{% include 'navbar.html' %}
+	{% endwith %}
+{% endblock %}
+
+<!-- Main Page Content -->
+{% block content %}
+	<h1> Hello </h1>
+{% endblock %}

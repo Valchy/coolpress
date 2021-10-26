@@ -46,3 +46,19 @@ In the coolpress example always create the Django users before the CoolUsers.
 ### Views
 This is where all the routing takes place.
 URLs and requests get sent and received.
+
+### Testing
+Types of testing: Functional or Non-functional
+
+Unit Testing < Integration Testing < System Testing < Acceptance Testing
+
+#### Unit Testing
+* Small functions to test features
+
+#### Test Methodologies:
+* TDD - Test Driven Development (very effective way of developing software) => first you write tests then code
+* BDD - Behaviour Driven Development (focused on why we are doing things)
+
+#### Python Test Frameworks
+* UnitTests & Nose2 - used by default, very powerful, quite verbose
+* Tox - for testing different python versions, used for compatibility tests

@@ -1,7 +1,17 @@
 {% extends 'base.html' %}
 
+<!-- Tab title -->
+{% block title %} Create or Update Post {% endblock %}
+
+<!-- Data for the navbar -->
+{% block navbar %}
+	{% with header="Create or Update Post" back_btn_url="index" %}
+		{% include 'navbar.html' %}
+	{% endwith %}
+{% endblock %}
+
+<!-- Main Page Content -->
 {% block content %}
-	<h1>Create or update a post</h1>
 	<form method="post">
 		{% csrf_token %}
 		<div class="form-group">
