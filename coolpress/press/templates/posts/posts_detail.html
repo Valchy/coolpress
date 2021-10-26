@@ -17,10 +17,11 @@
 
         {{post.title}}
 
-        {% if user.is_authenticated and cooluser == post.author %}
+        {% if user.is_authenticated and cooluser == post.author and post.id %}
         <div class="text-right">
-            <a class="btn btn-info new-post-btn" role="button"
-               target='_blank' href="{% url 'post-update' post_obj.id %}">Update Post</a>
+            <a class="btn btn-info new-post-btn" role="button" target='_blank' href="{% url 'post-update' post.id %}">
+                Update Post
+            </a>
         </div>
         {% endif %}
     </h1>
