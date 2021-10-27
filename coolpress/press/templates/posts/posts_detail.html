@@ -32,7 +32,14 @@
                 <div class="card-body">
                     <p class="card-text"><small class="text-muted">{{post.last_update}}</small></p>
                     <p class="card-text">{{post.body|urlize}}</p>
-                    <p class="card-text">By: <b>{{post.author.user.username}}</b></p>
+                    <p class="card-text">
+                        <span>By:</span>
+                        <b>
+                            <a href="{% url 'post-author' post.author.user.id %}" class="text-body text-underline-hover">
+                                {{post.author.user.username}}
+                            </a>
+                        </b>
+                    </p>
                 </div>
             </div>
             {% if post.image_link %}

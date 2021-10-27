@@ -1,16 +1,55 @@
 {% extends 'base.html' %}
 
 <!-- Tab title -->
-{% block title %} Posts by Valeri Sabev {% endblock %}
+{% block title %} Posts by {{user_name}} {% endblock %}
 
 <!-- Data for the navbar -->
 {% block navbar %}
-	{% with header="Posts by Valeri Sabev" back_btn_url="posts-list" header_btn_text="New Post" header_btn_url="post-add" %}
+	{% with header="Posts by user... {{}}" back_btn_url="index" header_btn_text="New Post" header_btn_url="post-add" %}
 		{% include 'navbar.html' %}
 	{% endwith %}
 {% endblock %}
 
 <!-- Main Page Content -->
 {% block content %}
-	<h1> Hello </h1>
+	<h1>-{{user_name}}-</h1>
+	{% for post in post_list %}
+		<div class="card mb-3 post">
+			<div class="row no-gutters">
+				{% if post.image_link %}
+				<div class="col-md-4 post-image-box">
+					<img style="width: 100%; height: 100%; object-fit: cover;" class="post-image" src="{{post.image_link}}"
+						 alt="{{post.title}}">
+				</div>
+				{% endif %}
+				<div class="{% if post.image_link %}col-md-8{% else %}col-md-12{% endif %}">
+					<div class="card-header">
+						{{post.category.slug}}
+					</div>
+					<div class="card-body">
+						<h5 class="card-title">{{post.title}}</h5>
+						<p class="card-text">{{post.body|urlize}}</p>
+						<p class="card-text"><small class="text-muted">{{post.last_update}}</small></p>
+						<p class="card-text">
+							<a href="{% url 'post-author' post.author.user.id %}" class="text-body text-underline-hover">
+								{{post.author.user.username}}
+							</a>
+						</p>
+					</div>
+					<div class="card-footer bg-transparent border-success">
+						<a href="{% url 'post-detail' post.id %}" class="btn btn-primary">View post</a>
+						{% if user.is_authenticated and cooluser == post.author%}
+							<a href="{% url 'post-update' post.id %}" class="btn btn-info">Update post</a>
+						{% endif %}
+					</div>
+				</div>
+			</div>
+		</div>
+		{% empty %}
+
+		<p class="text-center font-weight-bold">
+			There are no posts yet for this category, let's create some :D
+			<a href="/admin" class="btn btn-primary col-2 mt-3">Go to admin</a>
+		</p>
+	{% endfor %}
 {% endblock %}

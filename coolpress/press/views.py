@@ -4,7 +4,7 @@ from django.shortcuts import render, get_object_or_404
 
 # Create your views here.
 from django.urls import reverse
-from press.models import Post, PostStatus, Category
+from press.models import Post, PostStatus, Category, CoolUser
 from django.views.generic import TemplateView
 
 from press.forms import PostForm
@@ -33,7 +33,15 @@ def post_detail(request, post_id):
 
 # Posts filtered by specific author
 class PostsByAuthor(TemplateView):
+	context_object_name = 'user_name'
 	template_name = 'posts/posts_author.html'
+
+	def get_queryset(self):
+		queryset = super(PostsByAuthor, self).get_queryset()
+		user_id = self.kwargs['author_id']
+		user_name = CoolUser.objects.get(user_id=user_id)
+		posts = Post.objects.filter(author_id=user_id)
+		return queryset.filter(post_list=posts, user_name=user_name)
 
 
 # Displaying all posts
@@ -91,3 +99,7 @@ def category_posts(request, category_slug):
 	posts = Post.objects.filter(status=PostStatus.PUBLISHED.value, category=Category.objects.get(slug=category_slug))
 
 	return render(request, 'categories/category_posts.html', {'category': category_slug, 'posts': posts})
+
+
+def category_update(request, category_id):
+	return render(request, 'categories/category_update.html')
