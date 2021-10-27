@@ -22,6 +22,8 @@ Make coolpress folder "source root" after django-admin command
 * python manage.py shell
 * python manage.py flush 
 * python manage.py collectstatic
+* python manage.py dumpdata --all --indent 4 --output sample_posts.json
+* python manage.py loaddata sample_posts.json
 
 ## DB Commands (in the shell)
 * from press.models import <name_of_model>
@@ -38,9 +40,6 @@ Make coolpress folder "source root" after django-admin command
 * model.values()[:3] => returns the top three ones only
 * model.last().delete() => deletes last entity
 * model.order_by('-last_update') => orders in reverse order
-
-* python manage.py dumpdata --all --indent 4 --output sample_posts.json
-* python manage.py loaddata sample_posts.json
 
 ### Models
 It is a bit like a table inside a database, an object.
