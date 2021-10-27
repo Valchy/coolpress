@@ -33,15 +33,19 @@ def post_detail(request, post_id):
 
 # Posts filtered by specific author
 class PostsByAuthor(TemplateView):
-	context_object_name = 'user_name'
 	template_name = 'posts/posts_author.html'
 
-	def get_queryset(self):
-		queryset = super(PostsByAuthor, self).get_queryset()
+	def get_context_data(self):
+		context = super(PostsByAuthor, self).get_context_data()
 		user_id = self.kwargs['author_id']
+
 		user_name = CoolUser.objects.get(user_id=user_id)
+		context['user_name'] = user_name
+
 		posts = Post.objects.filter(author_id=user_id)
-		return queryset.filter(post_list=posts, user_name=user_name)
+		context['post_list'] = posts
+
+		return context
 
 
 # Displaying all posts
