@@ -39,7 +39,7 @@ Make coolpress folder "source root" after django-admin command
 * model.last().delete() => deletes last entity
 * model.order_by('-last_update') => orders in reverse order
 
-* python manage.py dumpdata --all --indent 4 --output sample_posts.json
+* python manage.py dumpdata press --indent 4 --output sample_posts.json
 * python manage.py loaddata sample_posts.json
 
 ### Models
