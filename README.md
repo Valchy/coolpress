@@ -7,6 +7,9 @@ CoolPress is an application to show the power of web development using Django
 We are about to find our ;P
 Make coolpress folder "source root" after django-admin command
 
+## Heroku
+* heroku run bash -a valchy-coolpress
+
 ## Commands
 * django-admin startproject coolpress (to init the project)
 * python manage.py startapp press (to start the app)
