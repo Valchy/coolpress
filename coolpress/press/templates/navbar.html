@@ -37,10 +37,10 @@
 
 		<ul class="navbar-nav mr-5 ml-3">
 			{% if user.is_authenticated %}
-				<li class="nav-item dropdown ">
+				<li class="nav-item dropdown">
 					<a class="nav-link dropdown-toggle" href="#" id="navUser" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-						{% if cooluser.gravatar_link %}
-							<img class="gravatar-navbar-icon" src="{{cooluser.gravatar_link}}" alt="">
+						{% if gravatar_image %}
+							<img class="gravatar-navbar-icon" src="{{gravatar_image}}" alt="">
 						{% endif %}
 
 						{{user.username}}

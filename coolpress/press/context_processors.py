@@ -1,4 +1,5 @@
 from .models import Category
+from press.gravatar import get_gravatar
 
 
 def categories_processor(request):
@@ -13,3 +14,14 @@ def cooluser_processor(request):
 		cooluser = request.user.cooluser
 
 	return {'cooluser': cooluser}
+
+
+def navbar_processor(request):
+	email = None
+
+	if hasattr(request.user, 'cooluser'):
+		email = request.user.email
+
+	gravatar_image = get_gravatar(email)
+
+	return {'gravatar_image': gravatar_image}
