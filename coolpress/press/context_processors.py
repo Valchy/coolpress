@@ -17,11 +17,11 @@ def cooluser_processor(request):
 
 
 def navbar_processor(request):
+	gravatar_image = ''
 	email = None
 
 	if hasattr(request.user, 'cooluser'):
 		email = request.user.email
-
-	gravatar_image = get_gravatar(email)
+		gravatar_image = get_gravatar(email)
 
 	return {'gravatar_image': gravatar_image}
