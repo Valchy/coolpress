@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 import os
 from pathlib import Path
-# import django_heroku
+import django_heroku
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -134,4 +134,4 @@ TEMPLATES[0]['OPTIONS']['context_processors'].append('press.context_processors.c
 TEMPLATES[0]['OPTIONS']['context_processors'].append('press.context_processors.navbar_processor')
 
 # Activate Django-Heroku.
-# django_heroku.settings(locals())
+django_heroku.settings(locals())
