@@ -113,5 +113,5 @@ Unit Testing < Integration Testing < System Testing < Acceptance Testing
 * Day 5 - static files, django forms, styling forms, user login, context processor, decorators
 * Day 6 - class based views, CBVs detail / list / updates, template naming
 * Day 7 - testing, types of tests, python / django testing frameworks
-* Day 8 - deployment, github actions, automate deployment, heroku
-* Day 9 - mid term exam :)
+* Day 8 - deployment, github actions, automate deployment, heroku, security
+* Day 9 - mid term exam, deploy automations, gravatar images
