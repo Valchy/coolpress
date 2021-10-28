@@ -7,7 +7,7 @@ CoolPress is an application to show the power of web development using Django
 We are about to find our ;P
 Make coolpress folder "source root" after django-admin command
 
-## Heroku
+## Heroku ssh (after installing the cli)
 * heroku run bash -a valchy-coolpress
 
 ## Commands
@@ -49,18 +49,69 @@ In the coolpress example always create the Django users before the CoolUsers.
 This is where all the routing takes place.
 URLs and requests get sent and received.
 
-### Testing
+## Testing
 Types of testing: Functional or Non-functional
 
 Unit Testing < Integration Testing < System Testing < Acceptance Testing
 
-#### Unit Testing
+### Unit Testing
+* Fast tests
+* Focused on a single functionality
+* Coded on the core of the application
 * Small functions to test features
 
-#### Test Methodologies:
-* TDD - Test Driven Development (very effective way of developing software) => first you write tests then code
-* BDD - Behaviour Driven Development (focused on why we are doing things)
+### Integration Testing
+* Mid pace tests
+* Test interactions with other applications
+* e.g databases, APIs, transactions, information checks
+* if mocking the integration tests they become unit
 
-#### Python Test Frameworks
+
+### System Testing
+* Slow and test the entire system
+* Ususally end-to-end (e2e) modeling a user story
+* e.g user login / logout, create / edit / delete / update of a post
+
+
+### Acceptance Testing
+* Super slow tests
+* Testing entire functionalities
+* Multiple user stories (many system tests)
+* Acceptance usually linked with a pre-released version of product
+
+
+## Test Methodologies:
+**TDD** - Test Driven Development (very effective way of developing software) => first you write tests then code
+**BDD** - Behaviour Driven Development (focused on why we are doing things)
+
+### TDD - Test Driven Development 
+* Is an effective way to develop software
+* First you write the tests and then you fix the tests
+* It is keeping the engaging of the development up
+* The tests are already written when handing the new features
+* Force you to think on the whole system even before developing the featues and spot desing pitfalls fast
+
+### BDD - Behaviour Driven Development
+* Require a full spec and coordination with product
+* Methodology of higher level than TDD
+* Focused on Why we are doing things
+* Helps a lot the coordination with product department
+* Uses some language that join development and Product departments
+* Even Product can create the tests by them own because the statements are linked to code
+
+
+### Python Test Frameworks
 * UnitTests & Nose2 - used by default, very powerful, quite verbose
 * Tox - for testing different python versions, used for compatibility tests
+
+
+## Applied Python Course
+* Day 1 - overview django and micro frrameworks, coolpress
+* Day 2 - UML, models, databases, permissions, data modeling, relational fields, queries
+* Day 3 - admin side, extended queries, shell, superusers
+* Day 4 - views, templates / tags, styling / bootstrap, urls / parameters, middlewares, context
+* Day 5 - static files, django forms, styling forms, user login, context processor, decorators
+* Day 6 - class based views, CBVs detail / list / updates, template naming
+* Day 7 - testing, types of tests, python / django testing frameworks
+* Day 8 - deployment, github actions, automate deployment, heroku
+* Day 9 - mid term exam :)
