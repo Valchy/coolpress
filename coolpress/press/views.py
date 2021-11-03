@@ -1,18 +1,27 @@
+from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 
 # Create your views here.
-from django.urls import reverse
+from django.urls import reverse, resolve
 from press.models import Post, PostStatus, Category, CoolUser
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, DetailView, ListView, CreateView, UpdateView
 
-from press.forms import PostForm
+from press.forms import PostForm, CategoryForm
+from press.stats_manager import extract_stats_from_single_post, extract_stats_from_posts
 
 
 # Home page
 def index(request):
-	return render(request, 'index.html')
+	url_name = resolve(request.path_info).url_name
+
+	# Checking if coming from login or logout url
+	if url_name == 'index-after-login':
+		return HttpResponseRedirect('/')
+	else:
+		return render(request, 'index.html')
 
 
 # Default, fallback error page
@@ -23,6 +32,23 @@ def page_not_found(request, exception):
 # About Page with fetch functionality :)
 class About(TemplateView):
 	template_name = 'about.html'
+
+
+def get_html_from_post(post):
+    return f'''
+    <html>
+    <body>
+    <h1>The asked post id {post.id}</h1> 
+    <ul>
+    <li>{post.title}</li>
+    <li>{post.body}</li>
+    <li>{post.category.label}</li>
+    <li>{post.last_update}</li>
+    </ul>
+    <p>{post.author.user.username}</p>
+    </body>
+    </html>
+    '''
 
 
 # Specific post details page
@@ -54,17 +80,17 @@ def post_list(request):
 	return render(request, 'posts/posts_list.html', {'post_list': post_list})
 
 
-# class PostList(ListView):
-#     model = Post
-#     paginate_by = 2
-#     context_object_name = 'post_list'
-#     template_name = 'posts_list.html'
-#
-#     def get_queryset(self):
-#         queryset = super(PostList, self).get_queryset()
-#         category_slug = self.kwargs['category_slug']
-#         category = get_object_or_404(Category, slug=category_slug)
-#         return  queryset.filter(category=category)
+class PostList(ListView):
+	model = Post
+	paginate_by = 2
+	context_object_name = 'post_list'
+	template_name = 'posts_list.html'
+
+	def get_queryset(self):
+		queryset = super(PostList, self).get_queryset()
+		category_slug = self.kwargs['category_slug']
+		category = get_object_or_404(Category, slug=category_slug)
+		return queryset.filter(category=category)
 
 
 @login_required
@@ -84,13 +110,21 @@ def post_update(request, post_id=None):
 			instance = form.save(commit=False)
 			instance.author = request.user.cooluser
 			instance.save()
-			redirect_url = reverse('posts-detail', kwargs={'post_id': instance.id})
+			redirect_url = reverse('post-detail', kwargs={'post_id': instance.id})
 
 			return HttpResponseRedirect(redirect_url)
 	else:
 		form = PostForm(instance=post)
 
 	return render(request, 'posts/posts_update.html', {'form': form})
+
+
+# Filter posts by search query
+class PostFilteredByText(PostList):
+	def get_queryset(self):
+		queryset = super(PostList, self).get_queryset()
+		search_text = self.request.GET.get('q')
+		return queryset.filter(title__icontains=search_text)
 
 
 # Displaying all categories and how many posts they have
@@ -107,3 +141,13 @@ def category_posts(request, category_slug):
 
 def category_update(request, category_id):
 	return render(request, 'categories/category_update.html')
+
+
+# List of all the cool users
+class CooluserList(ListView):
+	model = CoolUser
+
+
+# Detail view of a cool user
+class CooluserDetail(DetailView):
+	model = CoolUser
