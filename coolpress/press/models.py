@@ -2,6 +2,9 @@ from enum import Enum
 
 from django.contrib.auth.models import User
 from django.db import models
+from django.urls import reverse
+
+from press.user_management import get_gravatar_link, get_github_repositories
 
 
 class CoolUser(models.Model):
@@ -14,13 +17,32 @@ class CoolUser(models.Model):
         user = self.user
         return f'{user.first_name} {user.last_name} ({user.username})'
 
+    def save(self, *args, **kwargs):
+        super(CoolUser, self).save(*args, **kwargs)
+
+        if self.user.email:
+            email = self.user.email
+            gravatar_link = get_gravatar_link(email)
+            if gravatar_link != self.gravatar_link:
+                self.gravatar_link = gravatar_link
+                self.save()
+        gh_repositories = None
+        if self.github_profile:
+            gh_repositories = get_github_repositories(self.github_profile)
+
+        if gh_repositories != self.gh_repositories:
+            self.gh_repositories = gh_repositories
+            self.save()
 
 class Category(models.Model):
     class Meta:
         verbose_name_plural = "categories"
 
     label = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=200)
+    slug = models.SlugField(max_length=200, unique=True)
+
+    def get_absolute_url(self):
+        return reverse('category-detail', kwargs={'pk': self.pk})
 
     def __str__(self):
         return f'{self.slug}'

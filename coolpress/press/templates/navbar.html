@@ -39,8 +39,8 @@
 			{% if user.is_authenticated %}
 				<li class="nav-item dropdown">
 					<a class="nav-link dropdown-toggle" href="#" id="navUser" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-						{% if gravatar_image %}
-							<img class="gravatar-navbar-icon" src="{{gravatar_image}}" alt="">
+						{% if cooluser.gravatar_link %}
+							<img class="gravatar-navbar-icon" src="{{cooluser.gravatar_link}}" alt="">
 						{% endif %}
 
 						{{user.username}}
@@ -55,6 +55,9 @@
 				<li class="nav-item">
 					<a class="btn btn-primary" href="{% url 'login' %}">Log In</a>
 				</li>
+				<li class="nav-item ml-2">
+                    <a class="btn btn-secondary" href="{% url 'signup' %}">Sign Up</a>
+                </li>
 			{% endif %}
 		</ul>
 	</div>

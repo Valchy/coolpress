@@ -1,2 +1,4 @@
 django
 libgravatar
+beautifulsoup4
+wordcloud
