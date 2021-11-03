@@ -97,7 +97,7 @@ class CreatePostUsingForm(TestCase):
 class UserManagementTest(TestCase):
 	@classmethod
 	def setUpTestData(cls):
-		cls.proper_email = 'tuxskar@gmail.com'
+		cls.proper_email = 'valchygaming@gmail.com'
 		cls.wrong_email = 'tuxksarAlotofRandomThings@gmailRandomGoogleWhyNot.com'
 		cls.default_gravatar = 'https://www.gravatar.com/avatar/2988933bbe1b0a831e6a0564560ea099'
 
@@ -149,11 +149,13 @@ class GithubManager(TestCase):
 	@classmethod
 	def setUpTestData(cls):
 		dir_path = os.path.dirname(os.path.realpath(__file__))
-		sample_path = '__tests_data__/sample_github_profile.html'
+		sample_path = '__test_data__/sample_github_profile.html'
 		full_path = os.path.join(dir_path, sample_path)
+
 		with open(full_path, 'r') as fr:
 			cls.sample_content = fr.read().encode()
-		cls.proper_email = 'tuxskar@gmail.com'
+
+		cls.proper_email = 'valchygaming@gmail.com'
 
 	def test_unit_extract_repositories_from_sample(self):
 		repositories_cnt = extract_github_repositories(self.sample_content)
@@ -161,27 +163,25 @@ class GithubManager(TestCase):
 
 	def test_get_github_repositories(self):
 		random_user = User.objects.create(username='randomUser', email=self.proper_email)
-		cool_user = CoolUser.objects.create(user=random_user, github_profile='tuxskar')
+		cool_user = CoolUser.objects.create(user=random_user, github_profile='valchy')
 		self.assertGreaterEqual(cool_user.gh_repositories, 1)
 
 	def test_get_github_repositories_of_random_account(self):
 		random_user = User.objects.create(username='randomUser', email=self.proper_email)
-		cool_user = CoolUser.objects.create(user=random_user,
-											github_profile='tuxskar_some_random_username')
+		cool_user = CoolUser.objects.create(user=random_user, github_profile='valchy_some_random_username')
 		self.assertEqual(cool_user.gh_repositories, None)
 
 	def test_github_repositories_updating(self):
 		random_user = User.objects.create(username='randomUser', email=self.proper_email)
-		cool_user = CoolUser.objects.create(user=random_user,
-											github_profile='tuxskar_some_random_username')
+		cool_user = CoolUser.objects.create(user=random_user, github_profile='valchy_some_random_username')
 		self.assertEqual(cool_user.gh_repositories, None)
 
-		cool_user.github_profile = 'tuxskar'
+		cool_user.github_profile = 'valchy'
 		cool_user.save()
 
 		self.assertGreaterEqual(cool_user.gh_repositories, 34)
 
-		cool_user.github_profile = 'tuxskar_some_random_username'
+		cool_user.github_profile = 'valchy_some_random_username'
 		cool_user.save()
 		self.assertEqual(cool_user.gh_repositories, None)
 
@@ -210,17 +210,16 @@ class StatsManager(TestCase):
 		title = 'Applied Python Module because python is awesome, yes it is' * 100
 		body = 'This is a description of the module just for fun and to sew how it looks ' \
 			   'like like like like or subscribe'
-		sample_post = Post.objects.create(title=title, body=body, author=self.author,
-										  category=self.category)
+		sample_post = Post.objects.create(title=title, body=body, author=self.author, category=self.category)
 		stats = extract_stats_from_single_post(sample_post)
 
 		# self.assertEqual(stats.titles.top(2), {'is': 2, 'python': 2})
 		# self.assertEqual(stats.bodies.top(1), {'like': 4})
 		# self.assertEqual(stats.all.top(1), {'like': 4})
 
-		# Testing the generation of worcloud images
+		# Testing the generation of wordcloud images
 		dir_path = os.path.dirname(os.path.realpath(__file__))
-		filename = 'single_post.jpg'
+		filename = '__test_data__/single_post.jpg'
 		file_path = os.path.join(dir_path, filename)
 		generated_file = stats.titles.to_file(file_path)
 		file_size = os.path.getsize(generated_file)
