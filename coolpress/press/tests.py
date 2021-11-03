@@ -98,7 +98,7 @@ class UserManagementTest(TestCase):
 	@classmethod
 	def setUpTestData(cls):
 		cls.proper_email = 'valchygaming@gmail.com'
-		cls.wrong_email = 'tuxksarAlotofRandomThings@gmailRandomGoogleWhyNot.com'
+		cls.wrong_email = 'valchyAlotofRandomThings@gmailRandomGoogleWhyNot.com'
 		cls.default_gravatar = 'https://www.gravatar.com/avatar/2988933bbe1b0a831e6a0564560ea099'
 
 	def test_positive_creation_of(self):
