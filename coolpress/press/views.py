@@ -151,31 +151,3 @@ class CooluserList(ListView):
 # Detail view of a cool user
 class CooluserDetail(DetailView):
 	model = CoolUser
-
-
-# Allows a new user to sign up
-def signup(request):
-	if request.method == 'POST':
-		user_form = UserCreationForm(request.POST)
-		cooluser_form = CoolUserForm(request.POST)
-		if user_form.is_valid() and cooluser_form.is_valid():
-			user = user_form.save(commit=False)
-			user.email = cooluser_form.cleaned_data.get('email')
-			user.save()
-			user.refresh_from_db()  # load the profile instance created by the signal
-
-			cooluser_form = CoolUserForm(request.POST, instance=user.cooluser)
-			cooluser_form.full_clean()
-			_ = cooluser_form.save()
-
-			password = user_form.cleaned_data.get('password1')
-			user = authenticate(username=user.username, password=password)
-			login(request, user)
-			return redirect(HOME_INDEX)
-	else:
-		user_form = UserCreationForm()
-		cooluser_form = CoolUserForm()
-	return render(request, 'signup.html', {
-		'user_form': user_form,
-		'cooluser_form': cooluser_form
-	})

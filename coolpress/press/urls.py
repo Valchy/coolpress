@@ -25,7 +25,6 @@ urlpatterns = [
     # User views
     path('users/', views.CooluserList.as_view(), name='cooluser-list'), # All users
     path('user/<int:pk>', views.CooluserDetail.as_view(), name='cooluser-detail'), # Specific user
-    path('signup/', views.signup, name='signup'), # Allows a new user to sign up
 ]
 
 # Handling error pages (might cause images file load error in production)
