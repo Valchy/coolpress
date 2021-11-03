@@ -99,6 +99,7 @@ class UserManagementTest(TestCase):
 	def setUpTestData(cls):
 		cls.proper_email = 'tuxskar@gmail.com'
 		cls.wrong_email = 'tuxksarAlotofRandomThings@gmailRandomGoogleWhyNot.com'
+		cls.default_gravatar = 'https://www.gravatar.com/avatar/2988933bbe1b0a831e6a0564560ea099'
 
 	def test_positive_creation_of(self):
 		random_user = User.objects.create(username='randomUser', email=self.proper_email)
@@ -108,12 +109,12 @@ class UserManagementTest(TestCase):
 	def test_negative_creation_of_gravatar_links(self):
 		random_user = User.objects.create(username='randomUser', email=self.wrong_email)
 		user = CoolUser.objects.create(user=random_user)
-		self.assertIsNone(user.gravatar_link)
+		self.assertEqual(user.gravatar_link, self.default_gravatar)
 
 	def test_update_email(self):
 		random_user = User.objects.create(username='randomUser', email=self.wrong_email)
 		cool_user = CoolUser.objects.create(user=random_user)
-		self.assertIsNone(cool_user.gravatar_link)
+		self.assertEqual(cool_user.gravatar_link, self.default_gravatar)
 
 		cool_user.user.email = self.proper_email
 		cool_user.save()
@@ -126,7 +127,7 @@ class UserManagementTest(TestCase):
 
 	def test_get_gravatar_negative(self):
 		gravatar_link = get_gravatar_link(self.wrong_email)
-		self.assertIsNone(gravatar_link)
+		self.assertEqual(gravatar_link, self.default_gravatar)
 
 
 # class GravatarTest(TestCase):
