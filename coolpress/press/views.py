@@ -110,7 +110,7 @@ def post_update(request, post_id=None):
 			instance = form.save(commit=False)
 			instance.author = request.user.cooluser
 			instance.save()
-			redirect_url = reverse('posts-detail', kwargs={'post_id': instance.id})
+			redirect_url = reverse('post-detail', kwargs={'post_id': instance.id})
 
 			return HttpResponseRedirect(redirect_url)
 	else:

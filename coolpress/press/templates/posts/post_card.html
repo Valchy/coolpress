@@ -16,7 +16,7 @@
                 <p class="card-text"><a href="{% url 'cooluser-detail' post.author.pk %}">{{post.author.user.username}}</a></p>
             </div>
             <div class="card-footer bg-transparent border-success">
-                <a href="{% url 'posts-detail' post.id %}" class="btn btn-primary">Details</a>
+                <a href="{% url 'post-detail' post.id %}" class="btn btn-primary">Details</a>
             </div>
         </div>
     </div>

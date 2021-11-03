@@ -27,14 +27,14 @@ class PostModelTest(TestCase):
 
     def test_post_detail(self):
         client = Client()
-        url = reverse('posts-detail', kwargs={'post_id': self.p.pk})
+        url = reverse('post-detail', kwargs={'post_id': self.p.pk})
         response = client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['post_obj'], self.p)
         url = '/post/pepe'
         response = client.get(url)
         self.assertEqual(response.status_code, 404)
-        url = reverse('posts-detail', kwargs={'post_id': 10})
+        url = reverse('post-detail', kwargs={'post_id': 10})
         response = client.get(url)
         self.assertEqual(response.status_code, 404)
 
