@@ -276,7 +276,7 @@ class MediaStackManager(TestCase):
 	@classmethod
 	def setUpTestData(cls):
 		dir_path = os.path.dirname(os.path.realpath(__file__))
-		sample_path = '__tests_data__/news_sample.json'
+		sample_path = '__test_data__/news_sample.json'
 		full_path = os.path.join(dir_path, sample_path)
 		with open(full_path, 'r') as fr:
 			cls.ms_json = json.load(fr)
@@ -316,8 +316,7 @@ class MediaStackManager(TestCase):
 		expected_username = 'anonymous@coolpress.com'
 		self.assertGreater(post.id, 0)
 		self.assertEqual(post.author.user.username, expected_username)
-		self.assertEqual(post.image_link,
-						 "https://a.espncdn.com/photo/2019/0315/r514924_600x600_1-1.jpg")
+		self.assertEqual(post.image_link, "https://a.espncdn.com/photo/2019/0315/r514924_600x600_1-1.jpg")
 
 	def test_insert_named_author_post(self):
 		content = {
@@ -336,8 +335,7 @@ class MediaStackManager(TestCase):
 		expected_username = 'dchaturvedi@coolpress.com'
 		self.assertGreater(post.id, 0)
 		self.assertEqual(post.author.user.username, expected_username)
-		self.assertEqual(post.image_link,
-						 "https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg")
+		self.assertEqual(post.image_link, "https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg")
 
 	def test_insert_named_with_3_author_post(self):
 		content = {
@@ -356,8 +354,7 @@ class MediaStackManager(TestCase):
 		expected_username = 'dsecondlast@coolpress.com'
 		self.assertGreater(post.id, 0)
 		self.assertEqual(post.author.user.username, expected_username)
-		self.assertEqual(post.image_link,
-						 "https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg")
+		self.assertEqual(post.image_link, "https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg")
 
 	def test_get_mediastack_sport_posts(self):
 		categories = ['sports', 'health']

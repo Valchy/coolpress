@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 from django.db.models import QuerySet
 
-from wordcloud import WordCloud, STOPWORDS
+# from wordcloud import WordCloud, STOPWORDS
 from press.models import Post
 
 
