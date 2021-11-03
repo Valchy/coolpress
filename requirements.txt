@@ -2,3 +2,5 @@ django
 django-heroku
 gunicorn
 libgravatar
+beautifulsoup4
+wordcloud
