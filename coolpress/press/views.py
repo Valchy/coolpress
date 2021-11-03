@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
+from django.db.models import Q
 
 # Create your views here.
 from django.urls import reverse, resolve
@@ -35,7 +36,7 @@ class About(TemplateView):
 
 
 def get_html_from_post(post):
-    return f'''
+	return f'''
     <html>
     <body>
     <h1>The asked post id {post.id}</h1> 
@@ -124,7 +125,27 @@ class PostFilteredByText(PostList):
 	def get_queryset(self):
 		queryset = super(PostList, self).get_queryset()
 		search_text = self.request.GET.get('q')
-		return queryset.filter(title__icontains=search_text)
+		qs1 = Q(title__icontains=search_text)
+		qs2 = Q(body__icontains=search_text)
+		qs3 = Q(author__user__username__icontains=search_text)
+		qs4 = Q(category__label__eq=search_text)
+		return queryset.filter(qs1 | qs2 | qs3)
+
+	def get_context_data(self, *args, **kwargs):
+		context = super(PostFilteredByText, self).get_context_data(*args, **kwargs)
+		context['search_data'] = self.request.GET.get('q')
+		return context
+
+
+def post_filtered_by_text(request):
+	search_text = request.GET.get('q')
+	qs1 = Q(title__icontains=search_text)
+	qs2 = Q(body__icontains=search_text)
+	qs3 = Q(author__user__username__icontains=search_text)
+	qs4 = Q(category__label__eq=search_text)
+	posts_list = Post.objects.filter(qs1 | qs2 | qs3 | qs4)
+	stats = extract_stats_from_posts(post_list)
+	return render(request, 'posts_list.html', {'post_list': posts_list, 'stats': stats})
 
 
 # Displaying all categories and how many posts they have
