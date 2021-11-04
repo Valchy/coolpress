@@ -62,14 +62,16 @@ def post_detail(request, post_id):
 class PostsByAuthor(TemplateView):
 	template_name = 'posts/posts_author.html'
 
-	def get_context_data(self, **kwargs):
-		context = super(PostsByAuthor, self).get_context_data()
+	def get_context_data(self, *args, **kwargs):
+		context = super(PostsByAuthor, self).get_context_data(*args, **kwargs)
 		username = self.kwargs['username']
 		context['username'] = username
 
 		user = User.objects.get(username=username)
-		posts = Post.objects.filter(author_id=user.id)
+		posts = Post.objects.filter(author_id=user.id, status=PostStatus.PUBLISHED.value).order_by('-pk')
 		context['post_list'] = posts
+
+		context['posts_by'] = f'Posts by {username}'
 
 		return context
 
@@ -85,6 +87,8 @@ class PostsList(ListView):
 	paginate_by = 2
 	context_object_name = 'post_list'
 	template_name = 'posts/posts_list.html'
+
+
 
 
 # Create or update post if authenticated

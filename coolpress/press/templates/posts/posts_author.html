@@ -5,14 +5,13 @@
 
 <!-- Data for the navbar -->
 {% block navbar %}
-	{% with header="Posts by user... fix..." back_btn_url="index" header_btn_text="New Post" header_btn_url="post-add" %}
+	{% with header=posts_by back_btn_url="index" header_btn_text="New Post" header_btn_url="post-add" %}
 		{% include 'navbar.html' %}
 	{% endwith %}
 {% endblock %}
 
 <!-- Main Page Content -->
 {% block content %}
-	<h1>-{{username}}-</h1>
 	{% for post in post_list %}
 		<div class="card mb-3 post">
 			<div class="row no-gutters">
@@ -46,7 +45,7 @@
 		</div>
 		{% empty %}
 
-		<p class="text-center font-weight-bold">
+		<p class="d-flex flex-column align-items-center text-center font-weight-bold">
 			There are no posts yet for this category, let's create some :D
 			<a href="/admin" class="btn btn-primary col-2 mt-3">Go to admin</a>
 		</p>
