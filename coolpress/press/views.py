@@ -7,6 +7,8 @@ from django.db.models import Q
 
 # Create your views here.
 from django.urls import reverse, resolve
+from django.utils.decorators import method_decorator
+
 from press.models import Post, PostStatus, Category, CoolUser, User
 from django.views.generic import TemplateView, DetailView, ListView, CreateView, UpdateView
 
@@ -62,14 +64,16 @@ def post_detail(request, post_id):
 class PostsByAuthor(TemplateView):
 	template_name = 'posts/posts_author.html'
 
-	def get_context_data(self, **kwargs):
-		context = super(PostsByAuthor, self).get_context_data()
+	def get_context_data(self, *args, **kwargs):
+		context = super(PostsByAuthor, self).get_context_data(*args, **kwargs)
 		username = self.kwargs['username']
 		context['username'] = username
 
 		user = User.objects.get(username=username)
-		posts = Post.objects.filter(author_id=user.id)
+		posts = Post.objects.filter(author_id=user.id, status=PostStatus.PUBLISHED.value).order_by('-pk')
 		context['post_list'] = posts
+
+		context['posts_by'] = f'Posts by {username}'
 
 		return context
 
@@ -85,6 +89,8 @@ class PostsList(ListView):
 	paginate_by = 2
 	context_object_name = 'post_list'
 	template_name = 'posts/posts_list.html'
+
+
 
 
 # Create or update post if authenticated
@@ -148,16 +154,35 @@ def category_list(request):
 	return render(request, 'categories/category_list.html')
 
 
+# Allows a new category to be created (any user authenticated)
+class CategoryAdd(CreateView):
+	model = Category
+	form_class = CategoryForm
+
+	@method_decorator(login_required)
+	def dispatch(self, *args, **kwargs):
+		return super().dispatch(*args, **kwargs)
+
+
+# Updates a category (any user authenticated)
+class CategoryUpdate(UpdateView):
+	model = Category
+	form_class = CategoryForm
+
+	@method_decorator(login_required)
+	def dispatch(self, *args, **kwargs):
+		return super().dispatch(*args, **kwargs)
+
+
 # Displaying all posts with a certain category
 def category_posts(request, category_slug):
 	posts = Post.objects.filter(status=PostStatus.PUBLISHED.value, category=Category.objects.get(slug=category_slug))
 
-	return render(request, 'categories/category_posts.html', {'category': category_slug, 'posts': posts})
-
-
-# Update a specific category
-def category_update(request, category_id):
-	return render(request, 'categories/category_update.html')
+	return render(request, 'categories/category_posts.html', {
+		'category': category_slug,
+		'posts': posts,
+		'posts_by': f'Listing all possible posts for "{category_slug}" category'
+	})
 
 
 # List of all the cool users

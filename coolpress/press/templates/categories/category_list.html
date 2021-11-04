@@ -5,19 +5,13 @@
 
 <!-- Data for the navbar -->
 {% block navbar %}
-	{% with header="All Post Categories" %}
+	{% with header="All Post Categories" back_btn_url="index" header_btn_text="New Category" header_btn_url="category-add" %}
 		{% include 'navbar.html' %}
 	{% endwith %}
 {% endblock %}
 
 <!-- Main Page Content -->
 {% block content %}
-	{% if user.is_authenticated %}
-		<div class="text-right mb-2">
-			<a class="btn btn-info" href="{% url 'category-add' %}">Add Category</a>
-		</div>
-	{% endif %}
-
 	<table class="table table-striped">
 		<thead>
 			<tr>
@@ -41,7 +35,7 @@
 					</td>
 					<td>
 						{% if user.is_authenticated %}
-							<a class="btn btn-success" href="{% url 'category-update' category.id %}">Edit</a>
+							<a class="btn btn-info" href="{% url 'category-update' category.id %}">Edit</a>
 						{% endif %}
 					</td>
 				</tr>

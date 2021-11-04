@@ -27,7 +27,7 @@
         <div class="row no-gutters">
             <div class="{% if post.image_link %}col-md-12{% else %}col-md-12{% endif %}">
                 <div class="card-header">
-                    <a>#{{post.category.slug}}</a>
+                    <a class="text-dark" href="{% url 'category-posts' post.category.slug %}">#{{post.category.slug}}</a>
                 </div>
                 <div class="card-body">
                     <p class="card-text"><small class="text-muted">{{post.last_update}}</small></p>
@@ -35,7 +35,7 @@
                     <p class="card-text">
                         <span>By:</span>
                         <b>
-                            <a href="{% url 'post-author' post.author.user.id %}" class="text-body text-underline-hover">
+                            <a href="{% url 'post-author' post.author.user.username %}" class="text-body text-underline-hover">
                                 {{post.author.user.username}}
                             </a>
                         </b>
