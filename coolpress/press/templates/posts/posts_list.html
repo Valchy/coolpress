@@ -22,7 +22,7 @@
 				{% endif %}
 				<div class="{% if post.image_link %}col-md-8{% else %}col-md-12{% endif %}">
 					<div class="card-header">
-						{{post.category.slug}}
+						<a class="text-dark" href="{% url 'category-posts' post.category.slug %}">#{{post.category.slug}}</a>
 					</div>
 					<div class="card-body">
 						<h5 class="card-title">{{post.title}}</h5>

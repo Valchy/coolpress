@@ -19,8 +19,8 @@ urlpatterns = [
     # Category views
     path('categories/', views.category_list, name='category-list'), # All categories
     path('category/<str:category_slug>/', views.category_posts, name='category-posts'), # Specific category
-    path('category/add/', views.category_update, name='category-add'), # Add a category
-    path('category/update/<int:category_id>/', views.category_update, name='category-update'), # Update category
+    path('category/add/', views.CategoryAdd.as_view(), name='category-add'), # Add a category
+    path('category/update/<int:category_id>/', views.CategoryUpdate.as_view(), name='category-update'), # Update category
 
     # User views
     path('users/', views.CooluserList.as_view(), name='cooluser-list'), # All users
