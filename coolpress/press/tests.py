@@ -382,5 +382,5 @@ class MediaStackManager(TestCase):
 		posts_created = gather_and_create_news(categories, languages, limit)
 		self.assertEqual(len(posts_created), 10)
 
-		posts_created = gather_and_create_news(categories, languages, limit)
-		self.assertEqual(0, 0)
+		posts_created_twice = gather_and_create_news(categories, languages, limit)
+		self.assertLess(len(posts_created_twice), len(posts_created))

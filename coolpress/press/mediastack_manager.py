@@ -55,12 +55,10 @@ def insert_post_from_mediastack(single_post):
 
 	# Check if exact same post with body and title exists
 	try:
-		post = Post.objects.get(title=title, body=body)
+		Post.objects.get(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id)
+		return None
 	except Post.DoesNotExist:
-		post = Post.objects.create(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id)
-
-	# Making and saving post in db
-	return post
+		return Post.objects.create(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id)
 
 
 def gather_and_create_news(categories, languages, limit) -> List[Post]:
@@ -75,6 +73,8 @@ def gather_and_create_news(categories, languages, limit) -> List[Post]:
 
 	for d in data['data']:
 		post = insert_post_from_mediastack(d)
-		if post: response_array.append(post)
+
+		if post:
+			response_array.append(post)
 
 	return response_array
