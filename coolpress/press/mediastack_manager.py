@@ -15,19 +15,25 @@ def insert_post_from_mediastack(single_post):
 	image_link = single_post['image']
 	source_link = single_post['source']
 
+	# Source link check
+	if not source_link:
+		source_link = 'MediaStack News'
+		email = 'mediastakcnews.com'
+
 	# Author and username handling
 	if not author:
 		author = 'anonymous'
 		username = 'anonymous@coolpress.com'
 	else:
-		if 'staff' in author.lower(): username = f'staff@{email.lower()}'
+		if 'staff' in author.lower():
+			username = f'staff@{email.lower()}'
 		else:
 			author_names = author.lower().split(' ')
 
 			if len(author_names) == 1:
 				new_author_name = author_names[0]
 			else:
-				new_author_name = author_names[0][0] + author_names[-1:][0]
+				new_author_name = author_names[0][0] + author_names[-1]
 
 			username = f'{new_author_name}@coolpress.com'
 
@@ -35,7 +41,7 @@ def insert_post_from_mediastack(single_post):
 	try:
 		post_category = Category.objects.get(slug=category)
 	except Category.DoesNotExist:
-		new_category = Category.objects.create(label=category, slug=category)
+		new_category = Category.objects.create(label=f'{category} News', slug=category)
 		post_category = new_category
 
 	# New user if post author does not exist
@@ -47,8 +53,14 @@ def insert_post_from_mediastack(single_post):
 		cu = CoolUser.objects.create(user=u)
 		post_author = cu
 
+	# Check if exact same post with body and title exists
+	try:
+		post = Post.objects.get(title=title, body=body)
+	except Post.DoesNotExist:
+		post = Post.objects.create(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id)
+
 	# Making and saving post in db
-	return Post.objects.create(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id)
+	return post
 
 
 def gather_and_create_news(categories, languages, limit) -> List[Post]:
