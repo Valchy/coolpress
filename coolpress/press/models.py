@@ -11,6 +11,8 @@ class CoolUser(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     github_profile = models.CharField(max_length=150, null=True, blank=True)
     gh_repositories = models.IntegerField(null=True, blank=True)
+    gh_followers = models.IntegerField(null=True, blank=True)
+    last_followers_check = models.DateTimeField(null=True, blank=True)
     gravatar_link = models.CharField(max_length=400, null=True, blank=True)
 
     def __str__(self):
