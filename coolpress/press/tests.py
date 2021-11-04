@@ -379,8 +379,8 @@ class MediaStackManager(TestCase):
 		categories = ['sports', 'health']
 		languages = ['en']
 		limit = 10
-		posts_created = gather_and_create_news(categories, languages, limit)
+		posts_created = gather_and_create_news(categories, languages, ['us'], limit)
 		self.assertEqual(len(posts_created), 10)
 
-		posts_created_twice = gather_and_create_news(categories, languages, limit)
+		posts_created_twice = gather_and_create_news(categories, languages, ['us'], limit)
 		self.assertLess(len(posts_created_twice), len(posts_created))
