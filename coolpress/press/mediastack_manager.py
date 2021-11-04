@@ -8,40 +8,47 @@ from press.models import Post, User, CoolUser, Category
 
 def insert_post_from_mediastack(single_post):
 	author = single_post['author']
+	category = single_post['category']
 	email = single_post['source']
 	title = single_post['title']
 	body = single_post['description']
 	image_link = single_post['image']
 	source_link = single_post['source']
 
-	post_category = None
-	post_author = None
+	# Author and username handling
+	if not author:
+		author = 'anonymous'
+		username = 'anonymous@coolpress.com'
+	else:
+		if 'staff' in author.lower(): username = f'staff@{email.lower()}'
+		else:
+			author_names = author.lower().split(' ')
+
+			if len(author_names) == 1:
+				new_author_name = author_names[0]
+			else:
+				new_author_name = author_names[0][0] + author_names[-1:][0]
+
+			username = f'{new_author_name}@coolpress.com'
 
 	# New category if post category does not exist
-	# try:
-	# category = single_post['category']
-	# post_category = Category.objects.get(slug='health')
-	# except Category.DoesNotExist:
-	# 	new_category = Category.objects.create(label=post_category, slug=post_category)
-	# 	new_category.save()
-	# 	post_category = new_category
+	try:
+		post_category = Category.objects.get(slug=category)
+	except Category.DoesNotExist:
+		new_category = Category.objects.create(label=category, slug=category)
+		post_category = new_category
 
 	# New user if post author does not exist
-	# try:
-	# 	user = User.objects.get(email=email)
-	# 	post_author = CoolUser.objects.get(user_id=user.id)
-	# except CoolUser.DoesNotExist:
-	# 	u = User.objects.create(email=email, username=f'staff@{email}', first_name=author[0], last_name=author[1])
-	# 	cu = CoolUser.objects.create(user=u)
-	# 	u.save()
-	# 	cu.save()
-	# 	post_author = cu
+	try:
+		user = User.objects.get(email=email)
+		post_author = CoolUser.objects.get(user_id=user.id)
+	except User.DoesNotExist:
+		u = User.objects.create(email=email, username=username, first_name=author, last_name=author)
+		cu = CoolUser.objects.create(user=u)
+		post_author = cu
 
 	# Making and saving post in db
-	post = Post.objects.create(title=title, body=body, category_id=2, author_id=1)
-	post.save()
-
-	return post
+	return Post.objects.create(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id)
 
 
 def gather_and_create_news(categories, languages, limit) -> List[Post]:
