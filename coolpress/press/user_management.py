@@ -10,7 +10,6 @@ def get_gravatar_link(email: str) -> Optional[str]:
     return g.get_image()
 
 
-
 def extract_github_repositories(content) -> Optional[int]:
     soup = BeautifulSoup(content, 'html.parser')
     css_selector = 'div.UnderlineNav > nav > a:nth-child(2) > span'

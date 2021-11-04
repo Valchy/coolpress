@@ -7,7 +7,7 @@ from django.db.models import Q
 
 # Create your views here.
 from django.urls import reverse, resolve
-from press.models import Post, PostStatus, Category, CoolUser
+from press.models import Post, PostStatus, Category, CoolUser, User
 from django.views.generic import TemplateView, DetailView, ListView, CreateView, UpdateView
 
 from press.forms import PostForm, CategoryForm
@@ -37,19 +37,19 @@ class About(TemplateView):
 
 def get_html_from_post(post):
 	return f'''
-    <html>
-    <body>
-    <h1>The asked post id {post.id}</h1> 
-    <ul>
-    <li>{post.title}</li>
-    <li>{post.body}</li>
-    <li>{post.category.label}</li>
-    <li>{post.last_update}</li>
-    </ul>
-    <p>{post.author.user.username}</p>
-    </body>
-    </html>
-    '''
+	<html>
+	<body>
+	<h1>The asked post id {post.id}</h1> 
+	<ul>
+	<li>{post.title}</li>
+	<li>{post.body}</li>
+	<li>{post.category.label}</li>
+	<li>{post.last_update}</li>
+	</ul>
+	<p>{post.author.user.username}</p>
+	</body>
+	</html>
+	'''
 
 
 # Specific post details page
@@ -62,38 +62,32 @@ def post_detail(request, post_id):
 class PostsByAuthor(TemplateView):
 	template_name = 'posts/posts_author.html'
 
-	def get_context_data(self):
+	def get_context_data(self, **kwargs):
 		context = super(PostsByAuthor, self).get_context_data()
-		user_id = self.kwargs['author_id']
+		username = self.kwargs['username']
+		context['username'] = username
 
-		user_name = CoolUser.objects.get(user_id=user_id)
-		context['user_name'] = user_name
-
-		posts = Post.objects.filter(author_id=user_id)
+		user = User.objects.get(username=username)
+		posts = Post.objects.filter(author_id=user.id)
 		context['post_list'] = posts
 
 		return context
 
 
-# Displaying all posts
+# Displaying all posts (not used at the moment)
 def post_list(request):
-	post_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-pk')[:20]
+	post_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-pk')
 	return render(request, 'posts/posts_list.html', {'post_list': post_list})
 
-
-class PostList(ListView):
+# Displaying all posts (used)
+class PostsList(ListView):
 	model = Post
 	paginate_by = 2
 	context_object_name = 'post_list'
-	template_name = 'posts_list.html'
-
-	def get_queryset(self):
-		queryset = super(PostList, self).get_queryset()
-		category_slug = self.kwargs['category_slug']
-		category = get_object_or_404(Category, slug=category_slug)
-		return queryset.filter(category=category)
+	template_name = 'posts/posts_list.html'
 
 
+# Create or update post if authenticated
 @login_required
 def post_update(request, post_id=None):
 	post = None
@@ -121,9 +115,9 @@ def post_update(request, post_id=None):
 
 
 # Filter posts by search query
-class PostFilteredByText(PostList):
+class PostFilteredByText(PostsList):
 	def get_queryset(self):
-		queryset = super(PostList, self).get_queryset()
+		queryset = super(PostsList, self).get_queryset()
 		search_text = self.request.GET.get('q')
 		qs1 = Q(title__icontains=search_text)
 		qs2 = Q(body__icontains=search_text)
@@ -137,6 +131,7 @@ class PostFilteredByText(PostList):
 		return context
 
 
+# Posts filtered by search text
 def post_filtered_by_text(request):
 	search_text = request.GET.get('q')
 	qs1 = Q(title__icontains=search_text)
@@ -160,6 +155,7 @@ def category_posts(request, category_slug):
 	return render(request, 'categories/category_posts.html', {'category': category_slug, 'posts': posts})
 
 
+# Update a specific category
 def category_update(request, category_id):
 	return render(request, 'categories/category_update.html')
 
