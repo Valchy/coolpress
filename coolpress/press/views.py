@@ -85,7 +85,7 @@ class PostsByAuthor(TemplateView):
 
 # Displaying all posts (not used at the moment)
 def post_list(request):
-	post_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-pk')
+	post_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-last_update')
 	return render(request, 'posts/posts_list.html', {'post_list': post_list})
 
 # Displaying all posts (used)
@@ -94,6 +94,7 @@ class PostsList(ListView):
 	paginate_by = 2
 	context_object_name = 'post_list'
 	template_name = 'posts/posts_list.html'
+	queryset = Post.objects.all().order_by('-last_update')
 
 
 # Create or update post if authenticated

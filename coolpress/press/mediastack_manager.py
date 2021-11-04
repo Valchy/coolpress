@@ -3,7 +3,7 @@ import requests
 
 from typing import List
 
-from press.models import Post, User, CoolUser, Category
+from press.models import Post, User, CoolUser, Category, PostStatus
 
 
 def insert_post_from_mediastack(single_post):
@@ -58,7 +58,7 @@ def insert_post_from_mediastack(single_post):
 		Post.objects.get(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id)
 		return None
 	except Post.DoesNotExist:
-		return Post.objects.create(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id)
+		return Post.objects.create(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id, status=PostStatus.PUBLISHED.value)
 
 
 def gather_and_create_news(categories, languages, limit) -> List[Post]:
