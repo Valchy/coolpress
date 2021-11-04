@@ -7,6 +7,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('accounts/profile/', views.index, name='index-after-login'),
     path('about/', views.About.as_view(), name='about-page'),
+    path('search', views.search, name='search'),
 
     # Post views
     path('posts/', views.PostsList.as_view(), name='posts-list'), # All posts

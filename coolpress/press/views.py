@@ -37,6 +37,11 @@ class About(TemplateView):
 	template_name = 'about.html'
 
 
+# Search file
+def search(request):
+	return render(request, 'search.html')
+
+
 def get_html_from_post(post):
 	return f'''
 	<html>
@@ -89,8 +94,6 @@ class PostsList(ListView):
 	paginate_by = 2
 	context_object_name = 'post_list'
 	template_name = 'posts/posts_list.html'
-
-
 
 
 # Create or update post if authenticated
