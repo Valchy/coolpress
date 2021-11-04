@@ -37,6 +37,11 @@ class About(TemplateView):
 	template_name = 'about.html'
 
 
+# Search file
+def search(request):
+	return render(request, 'search.html')
+
+
 def get_html_from_post(post):
 	return f'''
 	<html>
@@ -80,7 +85,7 @@ class PostsByAuthor(TemplateView):
 
 # Displaying all posts (not used at the moment)
 def post_list(request):
-	post_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-pk')
+	post_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-last_update')
 	return render(request, 'posts/posts_list.html', {'post_list': post_list})
 
 # Displaying all posts (used)
@@ -89,8 +94,7 @@ class PostsList(ListView):
 	paginate_by = 2
 	context_object_name = 'post_list'
 	template_name = 'posts/posts_list.html'
-
-
+	queryset = Post.objects.all().order_by('-last_update')
 
 
 # Create or update post if authenticated
@@ -146,7 +150,7 @@ def post_filtered_by_text(request):
 	qs4 = Q(category__label__eq=search_text)
 	posts_list = Post.objects.filter(qs1 | qs2 | qs3 | qs4)
 	stats = extract_stats_from_posts(post_list)
-	return render(request, 'posts_list.html', {'post_list': posts_list, 'stats': stats})
+	return render(request, 'posts_list.html', {'post_list': posts_list, 'stats': stats, 'search_data': search_text})
 
 
 # Displaying all categories and how many posts they have

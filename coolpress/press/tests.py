@@ -264,11 +264,10 @@ class SearchBoxManager(TestCase):
 
 		self.assertEqual(Post.objects.count(), 3)
 
-		search_text = 'oscar'
+		search_text = 'valchy'
 		response = self.client.get(url, data=dict(q=search_text))
 		self.assertEqual(response.status_code, 200)
 		self.assertEqual(len(response.context['post_list']), 3)
-
 		self.assertEqual(Post.objects.count(), 3)
 
 
@@ -318,6 +317,26 @@ class MediaStackManager(TestCase):
 		self.assertEqual(post.author.user.username, expected_username)
 		self.assertEqual(post.image_link, "https://a.espncdn.com/photo/2019/0315/r514924_600x600_1-1.jpg")
 
+	def test_insert_no_source_link_no_image_link(self):
+		content = {
+			"author": None,
+			"title": "Colts lose OG Nelson to same injury as Wentz",
+			"description": "Colts All-Pro guard Quenton Nelson will miss the next five to 12 weeks after suffering the same foot injury as quarterback Carson Wentz.",
+			"url": "https://www.espn.com/nfl/story/_/id/31950239/indianapolis-colts-ol-quenton-nelson-5-12-weeks-foot-injury",
+			"source": None,
+			"image": None,
+			"category": "sports",
+			"language": "en",
+			"country": "us",
+			"published_at": "2021-08-03T16:35:14+00:00"
+		}
+		post = insert_post_from_mediastack(content)
+		expected_username = 'anonymous@coolpress.com'
+		self.assertGreater(post.id, 0)
+		self.assertEqual(post.author.user.username, expected_username)
+		self.assertEqual(post.image_link, None)
+		self.assertEqual(post.source_link, 'MediaStack News')
+
 	def test_insert_named_author_post(self):
 		content = {
 			"author": "Divya Chaturvedi",
@@ -363,5 +382,5 @@ class MediaStackManager(TestCase):
 		posts_created = gather_and_create_news(categories, languages, limit)
 		self.assertEqual(len(posts_created), 10)
 
-		posts_created = gather_and_create_news(categories, languages, limit)
-		self.assertEqual(0, 0)
+		posts_created_twice = gather_and_create_news(categories, languages, limit)
+		self.assertLess(len(posts_created_twice), len(posts_created))
