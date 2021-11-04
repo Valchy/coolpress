@@ -1,25 +1,24 @@
 {% extends 'base.html' %}
 
 <!-- Tab title -->
-{% block title %} Posts by {{user_name}} {% endblock %}
+{% block title %} Posts by {{username}} {% endblock %}
 
 <!-- Data for the navbar -->
 {% block navbar %}
-	{% with header="Posts by user... {{}}" back_btn_url="index" header_btn_text="New Post" header_btn_url="post-add" %}
+	{% with header="Posts by user... fix..." back_btn_url="index" header_btn_text="New Post" header_btn_url="post-add" %}
 		{% include 'navbar.html' %}
 	{% endwith %}
 {% endblock %}
 
 <!-- Main Page Content -->
 {% block content %}
-	<h1>-{{user_name}}-</h1>
+	<h1>-{{username}}-</h1>
 	{% for post in post_list %}
 		<div class="card mb-3 post">
 			<div class="row no-gutters">
 				{% if post.image_link %}
 				<div class="col-md-4 post-image-box">
-					<img style="width: 100%; height: 100%; object-fit: cover;" class="post-image" src="{{post.image_link}}"
-						 alt="{{post.title}}">
+					<img style="width: 100%; height: 100%; object-fit: cover;" class="post-image" src="{{post.image_link}}" alt="{{post.title}}">
 				</div>
 				{% endif %}
 				<div class="{% if post.image_link %}col-md-8{% else %}col-md-12{% endif %}">
@@ -31,7 +30,7 @@
 						<p class="card-text">{{post.body|urlize}}</p>
 						<p class="card-text"><small class="text-muted">{{post.last_update}}</small></p>
 						<p class="card-text">
-							<a href="{% url 'post-author' post.author.user.id %}" class="text-body text-underline-hover">
+							<a href="{% url 'post-author' post.author.user.username %}" class="text-body text-underline-hover">
 								{{post.author.user.username}}
 							</a>
 						</p>
