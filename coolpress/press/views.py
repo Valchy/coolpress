@@ -149,7 +149,7 @@ def post_filtered_by_text(request):
 	qs4 = Q(category__label__eq=search_text)
 	posts_list = Post.objects.filter(qs1 | qs2 | qs3 | qs4)
 	stats = extract_stats_from_posts(post_list)
-	return render(request, 'posts_list.html', {'post_list': posts_list, 'stats': stats})
+	return render(request, 'posts_list.html', {'post_list': posts_list, 'stats': stats, 'search_data': search_text})
 
 
 # Displaying all categories and how many posts they have
