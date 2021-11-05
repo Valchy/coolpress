@@ -192,8 +192,10 @@ def category_posts(request, category_slug):
 # List of all the cool users
 class CooluserList(ListView):
 	model = CoolUser
+	template_name = 'coolusers/cooluser_list.html'
 
 
 # Detail view of a cool user
 class CooluserDetail(DetailView):
 	model = CoolUser
+	template_name = 'coolusers/cooluser_detail.html'
