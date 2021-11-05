@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from enum import Enum
 
 from django.utils import timezone
@@ -25,7 +25,7 @@ class CoolUser(models.Model):
 	def save(self, *args, **kwargs):
 		super(CoolUser, self).save(*args, **kwargs)
 
-		date_for_check = timezone.now()
+		date_for_check = datetime.now()
 		date_for_check += timedelta(days=1)
 		min_date_for_check = self.last_followers_check
 		min_date_for_check += timedelta(days=1)
