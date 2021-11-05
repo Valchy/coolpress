@@ -29,7 +29,9 @@ class CoolUser(models.Model):
 		date_for_check = datetime.utcnow()
 		date_for_check = date_for_check.replace(tzinfo=pytz.utc)
 		min_date_for_check = self.last_followers_check
-		min_date_for_check += timedelta(minutes=1)
+
+		if min_date_for_check:
+			min_date_for_check += timedelta(days=1)
 
 		gh_repositories = None
 		gh_followers = None

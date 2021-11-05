@@ -1,6 +1,7 @@
 import json
 import os
 
+from bs4 import BeautifulSoup
 from django.contrib.auth.models import User
 from django.test import TestCase, Client
 
@@ -160,7 +161,8 @@ class GithubManager(TestCase):
 		cls.proper_email = 'valchygaming@gmail.com'
 
 	def test_unit_extract_repositories_from_sample(self):
-		repositories_cnt = extract_github_repositories(self.sample_content)
+		soup = BeautifulSoup(self.sample_content, 'html.parser')
+		repositories_cnt = extract_github_repositories(soup)
 		self.assertEqual(repositories_cnt, 34)
 
 	def test_get_github_repositories(self):
