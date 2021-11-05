@@ -1,45 +1,58 @@
 {% extends 'base.html' %}
 
+<!-- Tab title -->
+{% block title %} User - {{object.user.username}} {% endblock %}
+
+<!-- Data for the navbar -->
+{% block navbar %}
+	{% with header="Showing cooluser information" back_btn_url="cooluser-list" %}
+		{% include 'navbar.html' %}
+	{% endwith %}
+{% endblock %}
+
+<!-- Main Page Content -->
 {% block content %}
-<h1 class="text-center"> Username: {{object.user.username}}</h1>
+	<div class="d-flex flex-column align-items-center border-top pt-5">
+		<div class="d-flex justify-content-center col-12">
+			<div class="d-flex flex-column col-4">
+				<h4 class="mt-4 text-center">User Information:</h4>
+				<div class="d-flex flex-column align-items-center text-center my-4">
+					<span><b>Email:</b> {{object.user.email|default:'-'}}</span>
+					<span><b>Username:</b> {{object.user.username|default:'-'}}</span>
+					<span><b>First Name:</b> {{object.user.first_name|default:'-'}}</span>
+					<span><b>Last Name:</b> {{object.user.last_name|default:'-'}}</span>
+				</div>
+			</div>
 
-<div class="text-center">
-    {% if object.gravatar_link %}
+			{% if object.gravatar_link %}
+				<div class="d-flex flex-column justify-content-center align-items-center col-4">
+					<img style="width: 200px" src="{{object.gravatar_link}}" alt="User gravatar image">
+				</div>
+			{% endif %}
 
-    <img style="min-width: 100px" src="{{object.gravatar_link}}" alt="">
-    {% endif %}
-    <div class="email font-weight-bold text-center">{{object.user.email}}</div>
-</div>
+			{% if object.github_profile %}
+				<div class="d-flex flex-column col-4">
+					<h4 class="mt-4 text-center">Github Information:</h4>
+					<div class="d-flex flex-column align-items-center text-center my-4">
+						<span><b>Profile:</b> {{object.github_profile|default:'-'}}</span>
+						<span><b>Repositories:</b> {{object.gh_repositories|default:'-'}}</span>
+						<span><b>Followers:</b> {{object.gh_followers|default:'-'}}</span>
+						<span><b>Following:</b> {{object.gh_following|default:'-'}}</span>
+					</div>
+				</div>
+			{% endif %}
+		</div>
 
-{% if object.github_profile %}
-<div class="text-center">
-
-
-    <h2>Github Information</h2>
-    <ul>
-        <li>Profile: {{object.github_profile}}</li>
-        {% if object.gh_repositories %}
-        <li>Repositories: {{object.gh_repositories}}</li>
-        {% endif %}
-    </ul>
-    <div>
-        <div class="pt-2">
-            <img src="https://img.shields.io/github/stars/{{object.github_profile}}.svg"
-                 alt="">
-        </div>
-        <div class="pt-2">
-
-            <img src="https://img.shields.io/github/followers/{{object.github_profile}}.svg?style=social&label=Follow&maxAge=2592000"
-                 alt="Github profile">
-        </div>
-        <div class="pt-2">
-            <a class="btn btn-info" target="_blank"
-               href="https://github.com/{{object.github_profile}}/">Check
-                on
-                github</a>
-        </div>
-    </div>
-    {% endif %}
-
-
-    {% endblock %}
+		<div class="mt-4 text-center">
+			<div class="pt-2">
+				<img src="https://img.shields.io/github/stars/{{object.github_profile}}.svg" alt="">
+			</div>
+			<div class="pt-2">
+				<img src="https://img.shields.io/github/followers/{{object.github_profile}}.svg?style=social&label=Follow&maxAge=2592000" alt="Github profile">
+			</div>
+			<div class="pt-2">
+				<a class="btn btn-info" target="_blank" href="https://github.com/{{object.github_profile}}/">Check on github</a>
+			</div>
+		</div>
+	</div>
+{% endblock %}
