@@ -1,14 +1,16 @@
 # coolpress
 By **Valeri Sabev**
 
+This is a very fun project we did as a course in Harbour.Space university.
+We learned all about the Django framework and how to utilise its power!
+I also brushed up on my Bootstrap skills and understood testing better.
+
 CoolPress is an application to show the power of web development using Django
 
 ## How to Install
-We are about to find our ;P
-Make coolpress folder "source root" after django-admin command
+Run `django-admin startproject coolpress (to init the project)`
 
-## Heroku ssh (after installing the cli)
-* heroku run bash -a valchy-coolpress
+Make coolpress folder "source root" after django-admin command
 
 ## Commands
 * django-admin startproject coolpress (to init the project)
@@ -40,6 +42,11 @@ Make coolpress folder "source root" after django-admin command
 * model.values()[:3] => returns the top three ones only
 * model.last().delete() => deletes last entity
 * model.order_by('-last_update') => orders in reverse order
+
+## Heroku ssh (after installing the CLI)
+* heroku run bash -a valchy-coolpress
+* heroku logs -tail -a valchy-coolpress
+* heroku addons:open scheduler:standard -a valchy-coolpress
 
 ### Models
 It is a bit like a table inside a database, an object.
@@ -106,7 +113,7 @@ Unit Testing < Integration Testing < System Testing < Acceptance Testing
 
 
 ## Applied Python Course
-* Day 1 - overview django and micro frrameworks, coolpress
+* Day 1 - overview django and micro frameworks, coolpress
 * Day 2 - UML, models, databases, permissions, data modeling, relational fields, queries
 * Day 3 - admin side, extended queries, shell, superusers
 * Day 4 - views, templates / tags, styling / bootstrap, urls / parameters, middlewares, context
@@ -114,4 +121,10 @@ Unit Testing < Integration Testing < System Testing < Acceptance Testing
 * Day 6 - class based views, CBVs detail / list / updates, template naming
 * Day 7 - testing, types of tests, python / django testing frameworks
 * Day 8 - deployment, github actions, automate deployment, heroku, security
-* Day 9 - mid term exam, deploy automations, gravatar images
+* Day 9 - mid term exam, deploy automations, gravatar images => scored 90%
+* Day 10 - web scraping, risks of web scraping, selenium, css selectors, html tags
+* Day 11 - StatsDict, implementing tests and web scraping, users and user page, analysis
+* Day 12 - search box, word cloud generation, Q python library
+* Day 13 - RESTful APIs, mediastack, requests, django / heroku automation commands, cron tasks
+* Day 14 - automation commands extended, new features, email notification, user registration
+* Day 15 - final exam

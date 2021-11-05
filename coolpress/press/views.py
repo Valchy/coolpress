@@ -75,7 +75,8 @@ class PostsByAuthor(TemplateView):
 		context['username'] = username
 
 		user = User.objects.get(username=username)
-		posts = Post.objects.filter(author_id=user.id, status=PostStatus.PUBLISHED.value).order_by('-pk')
+		cu = CoolUser.objects.get(user_id=user.id)
+		posts = Post.objects.filter(author_id=cu.id, status=PostStatus.PUBLISHED.value).order_by('-pk')
 		context['post_list'] = posts
 
 		context['posts_by'] = f'Posts by {username}'

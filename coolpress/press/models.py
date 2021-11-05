@@ -1,5 +1,8 @@
+from datetime import timedelta, datetime
 from enum import Enum
 
+import pytz
+from django.utils import timezone
 from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
@@ -22,28 +25,43 @@ class CoolUser(models.Model):
 
 	def save(self, *args, **kwargs):
 		super(CoolUser, self).save(*args, **kwargs)
+
+		date_for_check = datetime.utcnow()
+		date_for_check = date_for_check.replace(tzinfo=pytz.utc)
+		min_date_for_check = self.last_followers_check
+
+		if min_date_for_check:
+			min_date_for_check += timedelta(days=1)
+
 		gh_repositories = None
+		gh_followers = None
+		gh_following = None
 
 		if self.user.email:
 			email = self.user.email
 			gravatar_link = get_gravatar_link(email)
 
+			# Getting gravatar link based on user email
 			if gravatar_link != self.gravatar_link:
 				self.gravatar_link = gravatar_link
 				self.save()
 
-		if self.github_profile:
+		# Getting github profile data
+		if self.github_profile and (not self.last_followers_check or date_for_check > min_date_for_check):
 			gh_repositories, gh_followers, gh_following = get_github_data(self.github_profile)
+			self.last_followers_check = datetime.utcnow()
+			self.save()
 
-		if gh_repositories != self.gh_repositories:
+		# Checking if there is difference in the data and if so resaving it
+		if gh_repositories and gh_repositories != self.gh_repositories:
 			self.gh_repositories = gh_repositories
 			self.save()
 
-		if gh_followers != self.gh_followers:
+		if gh_followers and gh_followers != self.gh_followers:
 			self.gh_followers = gh_followers
 			self.save()
 
-		if gh_following != self.gh_following:
+		if gh_following and gh_following != self.gh_following:
 			self.gh_following = gh_following
 			self.save()
 
