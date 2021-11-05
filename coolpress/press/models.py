@@ -1,6 +1,7 @@
 from datetime import timedelta, datetime
 from enum import Enum
 
+import pytz
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.db import models
@@ -25,10 +26,10 @@ class CoolUser(models.Model):
 	def save(self, *args, **kwargs):
 		super(CoolUser, self).save(*args, **kwargs)
 
-		date_for_check = datetime.now()
-		date_for_check += timedelta(days=1)
+		date_for_check = datetime.utcnow()
+		date_for_check = date_for_check.replace(tzinfo=pytz.utc)
 		min_date_for_check = self.last_followers_check
-		min_date_for_check += timedelta(days=1)
+		min_date_for_check += timedelta(minutes=1)
 
 		gh_repositories = None
 		gh_followers = None
@@ -46,7 +47,7 @@ class CoolUser(models.Model):
 		# Getting github profile data
 		if self.github_profile and (not self.last_followers_check or date_for_check > min_date_for_check):
 			gh_repositories, gh_followers, gh_following = get_github_data(self.github_profile)
-			self.last_followers_check = timezone.now()
+			self.last_followers_check = datetime.utcnow()
 			self.save()
 
 		# Checking if there is difference in the data and if so resaving it
