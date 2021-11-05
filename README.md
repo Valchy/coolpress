@@ -45,6 +45,8 @@ Make coolpress folder "source root" after django-admin command
 
 ## Heroku ssh (after installing the CLI)
 * heroku run bash -a valchy-coolpress
+* heroku logs -tail -a valchy-coolpress
+* heroku addons:open scheduler:standard -a valchy-coolpress
 
 ### Models
 It is a bit like a table inside a database, an object.
