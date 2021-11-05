@@ -89,6 +89,7 @@ def post_list(request):
 	post_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-last_update')
 	return render(request, 'posts/posts_list.html', {'post_list': post_list})
 
+
 # Displaying all posts (used)
 class PostsList(ListView):
 	model = Post
