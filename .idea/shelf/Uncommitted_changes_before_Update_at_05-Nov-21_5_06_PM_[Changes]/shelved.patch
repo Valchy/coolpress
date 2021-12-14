@@ -1,0 +1,719 @@
+Index: coolpress/press/views.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from django.contrib.auth import authenticate\r\nfrom django.contrib.auth.decorators import login_required\r\nfrom django.contrib.auth.forms import UserCreationForm\r\nfrom django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect\r\nfrom django.shortcuts import render, get_object_or_404, redirect\r\nfrom django.db.models import Q\r\n\r\n# Create your views here.\r\nfrom django.urls import reverse, resolve\r\nfrom django.utils.decorators import method_decorator\r\n\r\nfrom press.models import Post, PostStatus, Category, CoolUser, User\r\nfrom django.views.generic import TemplateView, DetailView, ListView, CreateView, UpdateView\r\n\r\nfrom press.forms import PostForm, CategoryForm\r\nfrom press.stats_manager import extract_stats_from_single_post, extract_stats_from_posts\r\n\r\n\r\n# Home page\r\ndef index(request):\r\n\turl_name = resolve(request.path_info).url_name\r\n\r\n\t# Checking if coming from login or logout url\r\n\tif url_name == 'index-after-login':\r\n\t\treturn HttpResponseRedirect('/')\r\n\telse:\r\n\t\treturn render(request, 'index.html')\r\n\r\n\r\n# Default, fallback error page\r\ndef page_not_found(request, exception):\r\n\treturn render(request, '404.html', status=404)\r\n\r\n\r\n# About Page with fetch functionality :)\r\nclass About(TemplateView):\r\n\ttemplate_name = 'about.html'\r\n\r\n\r\n# Search file\r\ndef search(request):\r\n\treturn render(request, 'search.html')\r\n\r\n\r\ndef get_html_from_post(post):\r\n\treturn f'''\r\n\t<html>\r\n\t<body>\r\n\t<h1>The asked post id {post.id}</h1> \r\n\t<ul>\r\n\t<li>{post.title}</li>\r\n\t<li>{post.body}</li>\r\n\t<li>{post.category.label}</li>\r\n\t<li>{post.last_update}</li>\r\n\t</ul>\r\n\t<p>{post.author.user.username}</p>\r\n\t</body>\r\n\t</html>\r\n\t'''\r\n\r\n\r\n# Specific post details page\r\ndef post_detail(request, post_id):\r\n\tpost = get_object_or_404(Post, pk=post_id)\r\n\treturn render(request, 'posts/posts_detail.html', {'post': post})\r\n\r\n\r\n# Posts filtered by specific author\r\nclass PostsByAuthor(TemplateView):\r\n\ttemplate_name = 'posts/posts_author.html'\r\n\r\n\tdef get_context_data(self, *args, **kwargs):\r\n\t\tcontext = super(PostsByAuthor, self).get_context_data(*args, **kwargs)\r\n\t\tusername = self.kwargs['username']\r\n\t\tcontext['username'] = username\r\n\r\n\t\tuser = User.objects.get(username=username)\r\n\t\tposts = Post.objects.filter(author_id=user.id, status=PostStatus.PUBLISHED.value).order_by('-pk')\r\n\t\tcontext['post_list'] = posts\r\n\r\n\t\tcontext['posts_by'] = f'Posts by {username}'\r\n\r\n\t\treturn context\r\n\r\n\r\n# Displaying all posts (not used at the moment)\r\ndef post_list(request):\r\n\tpost_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-last_update')\r\n\treturn render(request, 'posts/posts_list.html', {'post_list': post_list})\r\n\r\n# Displaying all posts (used)\r\nclass PostsList(ListView):\r\n\tmodel = Post\r\n\tpaginate_by = 2\r\n\tcontext_object_name = 'post_list'\r\n\ttemplate_name = 'posts/posts_list.html'\r\n\tqueryset = Post.objects.all().order_by('-last_update')\r\n\r\n\r\n# Create or update post if authenticated\r\n@login_required\r\ndef post_update(request, post_id=None):\r\n\tpost = None\r\n\r\n\tif post_id:\r\n\t\tpost = get_object_or_404(Post, pk=post_id)\r\n\r\n\t\tif request.user != post.author.user:\r\n\t\t\treturn HttpResponseBadRequest('Not Allowed to change others posts')\r\n\r\n\tif request.method == 'POST':\r\n\t\tform = PostForm(request.POST, instance=post)\r\n\r\n\t\tif form.is_valid():\r\n\t\t\tinstance = form.save(commit=False)\r\n\t\t\tinstance.author = request.user.cooluser\r\n\t\t\tinstance.save()\r\n\t\t\tredirect_url = reverse('post-detail', kwargs={'post_id': instance.id})\r\n\r\n\t\t\treturn HttpResponseRedirect(redirect_url)\r\n\telse:\r\n\t\tform = PostForm(instance=post)\r\n\r\n\treturn render(request, 'posts/posts_update.html', {'form': form})\r\n\r\n\r\n# Filter posts by search query\r\nclass PostFilteredByText(PostsList):\r\n\tdef get_queryset(self):\r\n\t\tqueryset = super(PostsList, self).get_queryset()\r\n\t\tsearch_text = self.request.GET.get('q')\r\n\t\tqs1 = Q(title__icontains=search_text)\r\n\t\tqs2 = Q(body__icontains=search_text)\r\n\t\tqs3 = Q(author__user__username__icontains=search_text)\r\n\t\tqs4 = Q(category__label__eq=search_text)\r\n\t\treturn queryset.filter(qs1 | qs2 | qs3)\r\n\r\n\tdef get_context_data(self, *args, **kwargs):\r\n\t\tcontext = super(PostFilteredByText, self).get_context_data(*args, **kwargs)\r\n\t\tcontext['search_data'] = self.request.GET.get('q')\r\n\t\treturn context\r\n\r\n\r\n# Posts filtered by search text\r\ndef post_filtered_by_text(request):\r\n\tsearch_text = request.GET.get('q')\r\n\tqs1 = Q(title__icontains=search_text)\r\n\tqs2 = Q(body__icontains=search_text)\r\n\tqs3 = Q(author__user__username__icontains=search_text)\r\n\tqs4 = Q(category__label__eq=search_text)\r\n\tposts_list = Post.objects.filter(qs1 | qs2 | qs3 | qs4)\r\n\tstats = extract_stats_from_posts(post_list)\r\n\treturn render(request, 'posts_list.html', {'post_list': posts_list, 'stats': stats, 'search_data': search_text})\r\n\r\n\r\n# Displaying all categories and how many posts they have\r\ndef category_list(request):\r\n\treturn render(request, 'categories/category_list.html')\r\n\r\n\r\n# Allows a new category to be created (any user authenticated)\r\nclass CategoryAdd(CreateView):\r\n\tmodel = Category\r\n\tform_class = CategoryForm\r\n\r\n\t@method_decorator(login_required)\r\n\tdef dispatch(self, *args, **kwargs):\r\n\t\treturn super().dispatch(*args, **kwargs)\r\n\r\n\r\n# Updates a category (any user authenticated)\r\nclass CategoryUpdate(UpdateView):\r\n\tmodel = Category\r\n\tform_class = CategoryForm\r\n\r\n\t@method_decorator(login_required)\r\n\tdef dispatch(self, *args, **kwargs):\r\n\t\treturn super().dispatch(*args, **kwargs)\r\n\r\n\r\n# Displaying all posts with a certain category\r\ndef category_posts(request, category_slug):\r\n\tposts = Post.objects.filter(status=PostStatus.PUBLISHED.value, category=Category.objects.get(slug=category_slug))\r\n\r\n\treturn render(request, 'categories/category_posts.html', {\r\n\t\t'category': category_slug,\r\n\t\t'posts': posts,\r\n\t\t'posts_by': f'Listing all possible posts for \"{category_slug}\" category'\r\n\t})\r\n\r\n\r\n# List of all the cool users\r\nclass CooluserList(ListView):\r\n\tmodel = CoolUser\r\n\r\n\r\n# Detail view of a cool user\r\nclass CooluserDetail(DetailView):\r\n\tmodel = CoolUser\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/views.py b/coolpress/press/views.py
+--- a/coolpress/press/views.py	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ b/coolpress/press/views.py	(date 1636128353488)
+@@ -192,8 +192,10 @@
+ # List of all the cool users
+ class CooluserList(ListView):
+ 	model = CoolUser
++	template_name = 'coolusers/cooluser_list.html'
+ 
+ 
+ # Detail view of a cool user
+ class CooluserDetail(DetailView):
+ 	model = CoolUser
++	template_name = 'coolusers/cooluser_detail.html'
+Index: coolpress/press/tests.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import json\r\nimport os\r\n\r\nfrom django.contrib.auth.models import User\r\nfrom django.test import TestCase, Client\r\n\r\n# Create your tests here.\r\nfrom django.urls import reverse\r\n\r\nfrom press.mediastack_manager import insert_post_from_mediastack, gather_and_create_news\r\nfrom press.models import Category, CoolUser, Post\r\nfrom press.stats_manager import StatsDict, extract_stats_from_single_post, extract_stats_from_posts\r\nfrom press.user_management import get_gravatar_link, extract_github_repositories\r\n\r\nfrom press.__test_data__.sample_posts_data import TITLES, BODIES\r\n\r\n\r\nclass CategoryModelTest(TestCase):\r\n\tdef test_categories_count_same_as_context(self):\r\n\t\tcategories = Category.objects.all()\r\n\t\tresponse = self.client.get(reverse('category-list'))\r\n\t\tcontext_categories = response.context['categories']\r\n\t\tself.assertCountEqual(categories, context_categories)\r\n\r\n\r\nclass PostModelTest(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tcls.u = User.objects.create(first_name='juanito')\r\n\t\tcls.cu = CoolUser.objects.create(user=cls.u)\r\n\t\tcls.cat = Category.objects.create(slug='random', label='Some random news')\r\n\t\tcls.p = Post.objects.create(category=cls.cat, author=cls.cu)\r\n\r\n\tdef test_reaching_unknown_post(self):\r\n\t\tresponse = self.client.get(reverse('post-detail', kwargs={'post_id': 9999999}))\r\n\t\tself.assertEqual(response.status_code, 404)\r\n\r\n\tdef test_user_create(self):\r\n\t\tu = User.objects.create(first_name='juantigo')\r\n\t\tcu = CoolUser.objects.create(user=u)\r\n\t\tself.assertEqual(cu.id, 1)\r\n\r\n\tdef test_sample_post(self):\r\n\t\tself.assertEqual(self.cu.pk, 1)\r\n\r\n\t\tcnt_of_post = Post.objects.count()\r\n\t\tself.assertEqual(cnt_of_post, 1)\r\n\r\n\tdef test_post_detail(self):\r\n\t\tclient = Client()\r\n\t\turl = reverse('post-detail', kwargs={'post_id': self.p.pk})\r\n\t\tresponse = client.get(url)\r\n\t\tself.assertEqual(response.status_code, 200)\r\n\t\tself.assertEqual(response.context['post_obj'], self.p)\r\n\t\turl = '/post/pepe'\r\n\t\tresponse = client.get(url)\r\n\t\tself.assertEqual(response.status_code, 404)\r\n\t\turl = reverse('post-detail', kwargs={'post_id': 10})\r\n\t\tresponse = client.get(url)\r\n\t\tself.assertEqual(response.status_code, 404)\r\n\r\n\r\nclass CreatePostUsingForm(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tcls.juan = User.objects.create(first_name='juanito', is_active=True, username='juanito')\r\n\t\tcls.cu = CoolUser.objects.create(user=cls.juan)\r\n\t\tcls.cat = Category.objects.create(slug='random', label='Some random news')\r\n\t\tcls.juan_post = Post.objects.create(category=cls.cat, author=cls.cu)\r\n\r\n\t\tcls.juan_pass = 'Holamundo'\r\n\t\tcls.juan.set_password('Holamundo')\r\n\t\tcls.juan.save()\r\n\r\n\t\tcls.maria = User.objects.create(first_name='maria', is_active=True, username='maria')\r\n\t\tcls.cu = CoolUser.objects.create(user=cls.maria)\r\n\r\n\t\tcls.maria_pass = 'HolamundoMaria'\r\n\t\tcls.maria.set_password(cls.maria_pass)\r\n\t\tcls.maria.save()\r\n\r\n\tdef setUp(self):\r\n\t\tself.client = Client()\r\n\r\n\tdef test_check_others_updating_permissions(self):\r\n\t\tupdate_juans_post = reverse('post-update', kwargs=dict(post_id=self.juan_post.id))\r\n\t\tis_logged_in = self.client.login(username=self.juan.username, password=self.juan_pass)\r\n\t\tself.assertTrue(is_logged_in)\r\n\r\n\t\tresponse = self.client.get(update_juans_post)\r\n\t\tself.assertEqual(response.status_code, 200)\r\n\r\n\t\tis_logged_in = self.client.login(username=self.maria.username, password=self.maria_pass)\r\n\t\tself.assertTrue(is_logged_in)\r\n\t\tresponse = self.client.get(update_juans_post)\r\n\t\tself.assertEqual(response.status_code, 400)\r\n\r\n\r\nclass UserManagementTest(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tcls.proper_email = 'valchygaming@gmail.com'\r\n\t\tcls.wrong_email = 'valchyAlotofRandomThings@gmailRandomGoogleWhyNot.com'\r\n\t\tcls.default_gravatar = 'https://www.gravatar.com/avatar/2988933bbe1b0a831e6a0564560ea099'\r\n\r\n\tdef test_positive_creation_of(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.proper_email)\r\n\t\tuser = CoolUser.objects.create(user=random_user)\r\n\t\tself.assertIsNotNone(user.gravatar_link)\r\n\r\n\tdef test_negative_creation_of_gravatar_links(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.wrong_email)\r\n\t\tuser = CoolUser.objects.create(user=random_user)\r\n\t\tself.assertEqual(user.gravatar_link, self.default_gravatar)\r\n\r\n\tdef test_update_email(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.wrong_email)\r\n\t\tcool_user = CoolUser.objects.create(user=random_user)\r\n\t\tself.assertEqual(cool_user.gravatar_link, self.default_gravatar)\r\n\r\n\t\tcool_user.user.email = self.proper_email\r\n\t\tcool_user.save()\r\n\t\tself.assertIsNotNone(cool_user.gravatar_link)\r\n\r\n\tdef test_get_gravatar_positive(self):\r\n\t\tgravatar_link = get_gravatar_link(self.proper_email)\r\n\t\tself.assertIsNotNone(gravatar_link)\r\n\t\tself.assertTrue(gravatar_link, 'https://www.gravatar.com/avatar/139f76ac09f8b9d3a2392b45b7ad5f4c')\r\n\r\n\tdef test_get_gravatar_negative(self):\r\n\t\tgravatar_link = get_gravatar_link(self.wrong_email)\r\n\t\tself.assertEqual(gravatar_link, self.default_gravatar)\r\n\r\n\r\n# class GravatarTest(TestCase):\r\n# \tuser_email = 'valchygaming@gmail.com'\r\n# \tfake_email = 'ThisEmailShouldNeverWork@SomeTotallyRandomDomain.com'\r\n#\r\n# \tdef test_user_gravatar_positive(self):\r\n# \t\t# user = User.objects.create(email=self.user_email)\r\n# \t\tgravatar_image = get_gravatar_link(self.user_email)\r\n# \t\tself.assertIsNotNone(gravatar_image)\r\n#\r\n# \tdef test_user_gravatar_negative(self):\r\n# \t\t# user = User.objects.create(email=self.user_email)\r\n# \t\tgravatar_image = get_gravatar_link(self.fake_email)\r\n# \t\tself.assertIsNone(gravatar_image)\r\n\r\n\r\nclass GithubManager(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tdir_path = os.path.dirname(os.path.realpath(__file__))\r\n\t\tsample_path = '__test_data__/sample_github_profile.html'\r\n\t\tfull_path = os.path.join(dir_path, sample_path)\r\n\r\n\t\twith open(full_path, 'r') as fr:\r\n\t\t\tcls.sample_content = fr.read().encode()\r\n\r\n\t\tcls.proper_email = 'valchygaming@gmail.com'\r\n\r\n\tdef test_unit_extract_repositories_from_sample(self):\r\n\t\trepositories_cnt = extract_github_repositories(self.sample_content)\r\n\t\tself.assertEqual(repositories_cnt, 34)\r\n\r\n\tdef test_get_github_repositories(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.proper_email)\r\n\t\tcool_user = CoolUser.objects.create(user=random_user, github_profile='valchy')\r\n\t\tself.assertGreaterEqual(cool_user.gh_repositories, 1)\r\n\r\n\tdef test_get_github_repositories_of_random_account(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.proper_email)\r\n\t\tcool_user = CoolUser.objects.create(user=random_user, github_profile='valchy_some_random_username')\r\n\t\tself.assertEqual(cool_user.gh_repositories, None)\r\n\r\n\tdef test_github_repositories_updating(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.proper_email)\r\n\t\tcool_user = CoolUser.objects.create(user=random_user, github_profile='valchy_some_random_username')\r\n\t\tself.assertEqual(cool_user.gh_repositories, None)\r\n\r\n\t\tcool_user.github_profile = 'valchy'\r\n\t\tcool_user.save()\r\n\r\n\t\tself.assertGreaterEqual(cool_user.gh_repositories, 34)\r\n\r\n\t\tcool_user.github_profile = 'valchy_some_random_username'\r\n\t\tcool_user.save()\r\n\t\tself.assertEqual(cool_user.gh_repositories, None)\r\n\r\n\r\nclass StatsManager(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tcategory = Category.objects.create(slug='random', label='Random News')\r\n\t\tcls.category = category\r\n\t\tcls.juan = User.objects.create(first_name='juanito', is_active=True, username='juanito')\r\n\t\tauthor = CoolUser.objects.create(user=cls.juan)\r\n\t\tcls.author = author\r\n\t\tfor title, body in zip(TITLES, BODIES):\r\n\t\t\t_ = Post.objects.create(author=author, category=category, title=title, body=body)\r\n\r\n\tdef test_stats_sample(self):\r\n\t\tmsg = 'science ' * 3 + 'art ' * 7 + 'cats ' * 7 + 'of ' * 10 + 'a ' * 10\r\n\t\tsd = StatsDict.from_msg(msg)\r\n\t\tself.assertEqual(sd.top(1), {'a': 10})\r\n\t\tself.assertEqual(sd.top(2), {'a': 10, 'of': 10})\r\n\t\tself.assertEqual(sd.top(10), {'a': 10, 'of': 10, 'art': 7, 'cats': 7, 'science': 3, '': 1})\r\n\t\tfrom_sd = sd.top(5)\r\n\t\tself.assertEqual(from_sd.top(2), {'a': 10, 'of': 10})\r\n\r\n\tdef test_single_post(self):\r\n\t\ttitle = 'Applied Python Module because python is awesome, yes it is' * 100\r\n\t\tbody = 'This is a description of the module just for fun and to sew how it looks ' \\\r\n\t\t\t   'like like like like or subscribe'\r\n\t\tsample_post = Post.objects.create(title=title, body=body, author=self.author, category=self.category)\r\n\t\tstats = extract_stats_from_single_post(sample_post)\r\n\r\n\t\t# self.assertEqual(stats.titles.top(2), {'is': 2, 'python': 2})\r\n\t\t# self.assertEqual(stats.bodies.top(1), {'like': 4})\r\n\t\t# self.assertEqual(stats.all.top(1), {'like': 4})\r\n\r\n\t\t# Testing the generation of wordcloud images\r\n\t\tdir_path = os.path.dirname(os.path.realpath(__file__))\r\n\t\tfilename = '__test_data__/single_post.jpg'\r\n\t\tfile_path = os.path.join(dir_path, filename)\r\n\t\tgenerated_file = stats.titles.to_file(file_path)\r\n\t\tfile_size = os.path.getsize(generated_file)\r\n\t\tself.assertGreater(file_size, 0)\r\n\r\n\t\t# Testing the generation of the svg\r\n\t\tsvg_generated = stats.titles.to_svg()\r\n\t\tself.assertIsNotNone(svg_generated)\r\n\r\n\tdef test_multi_posts(self):\r\n\t\tposts = Post.objects.filter(category=self.category)\r\n\t\tstats = extract_stats_from_posts(posts)\r\n\r\n\t\tself.assertEqual(stats.titles.top(2), {'of': 2, 'python': 2})\r\n\t\tself.assertEqual(stats.bodies.top(5), {'to': 23, 'and': 16, 'the': 16, 'a': 13, '': 10})\r\n\t\tself.assertEqual(stats.all.top(7), {'to': 23, 'and': 16, 'the': 16, 'a': 13, '': 10, 'of': 10, 'is': 9})\r\n\r\n\r\nclass SearchBoxManager(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tcategory = Category.objects.create(slug='random', label='Random News')\r\n\t\tcls.category = category\r\n\t\tcls.juan = User.objects.create(first_name='juanito', is_active=True, username='juanito')\r\n\t\tauthor = CoolUser.objects.create(user=cls.juan)\r\n\t\tcls.author = author\r\n\r\n\t\tfor title, body in zip(TITLES, BODIES):\r\n\t\t\t_ = Post.objects.create(author=author, category=category, title=title, body=body)\r\n\r\n\tdef setUp(self):\r\n\t\tself.client = Client()\r\n\r\n\tdef test_search_box(self):\r\n\t\tsearch_text = 'python'\r\n\t\turl = reverse('post-filtered')\r\n\t\tresponse = self.client.get(url, data=dict(q=search_text))\r\n\t\tself.assertEqual(response.status_code, 200)\r\n\t\tself.assertEqual(len(response.context['post_list']), 2)\r\n\r\n\t\tself.assertEqual(Post.objects.count(), 3)\r\n\r\n\t\tsearch_text = 'valchy'\r\n\t\tresponse = self.client.get(url, data=dict(q=search_text))\r\n\t\tself.assertEqual(response.status_code, 200)\r\n\t\tself.assertEqual(len(response.context['post_list']), 3)\r\n\t\tself.assertEqual(Post.objects.count(), 3)\r\n\r\n\r\nclass MediaStackManager(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tdir_path = os.path.dirname(os.path.realpath(__file__))\r\n\t\tsample_path = '__test_data__/news_sample.json'\r\n\t\tfull_path = os.path.join(dir_path, sample_path)\r\n\t\twith open(full_path, 'r') as fr:\r\n\t\t\tcls.ms_json = json.load(fr)\r\n\r\n\tdef test_insert_staff_post(self):\r\n\t\tcontent = {\"author\": \"CBS Sports Staff\",\r\n\t\t\t\t   \"title\": \"2021 Fantasy football draft prep: Tips, rankings, advice, rookies, strategy, top 150 by dialed-in experts\",\r\n\t\t\t\t   \"description\": \"SportsLine's 2021 Fantasy football draft bible can give you a huge edge in your league\",\r\n\t\t\t\t   \"url\": \"https://www.cbssports.com/fantasy/football/news/2021-fantasy-football-draft-prep-tips-rankings-advice-rookies-strategy-top-150-by-dialed-in-experts/\",\r\n\t\t\t\t   \"source\": \"CBSSports.com\",\r\n\t\t\t\t   \"image\": None,\r\n\t\t\t\t   \"category\": \"sports\",\r\n\t\t\t\t   \"language\": \"en\",\r\n\t\t\t\t   \"country\": \"us\",\r\n\t\t\t\t   \"published_at\": \"2021-08-03T15:26:41+00:00\"\r\n\t\t\t\t   }\r\n\t\tpost = insert_post_from_mediastack(content)\r\n\t\texpected_username = 'staff@cbssports.com'\r\n\t\tself.assertGreater(post.id, 0)\r\n\t\tself.assertEqual(post.author.user.username, expected_username)\r\n\t\tself.assertEqual(post.image_link, None)\r\n\r\n\tdef test_insert_no_author(self):\r\n\t\tcontent = {\r\n\t\t\t\"author\": None,\r\n\t\t\t\"title\": \"Colts lose OG Nelson to same injury as Wentz\",\r\n\t\t\t\"description\": \"Colts All-Pro guard Quenton Nelson will miss the next five to 12 weeks after suffering the same foot injury as quarterback Carson Wentz.\",\r\n\t\t\t\"url\": \"https://www.espn.com/nfl/story/_/id/31950239/indianapolis-colts-ol-quenton-nelson-5-12-weeks-foot-injury\",\r\n\t\t\t\"source\": \"ESPN\",\r\n\t\t\t\"image\": \"https://a.espncdn.com/photo/2019/0315/r514924_600x600_1-1.jpg\",\r\n\t\t\t\"category\": \"sports\",\r\n\t\t\t\"language\": \"en\",\r\n\t\t\t\"country\": \"us\",\r\n\t\t\t\"published_at\": \"2021-08-03T16:35:14+00:00\"\r\n\t\t}\r\n\t\tpost = insert_post_from_mediastack(content)\r\n\t\texpected_username = 'anonymous@coolpress.com'\r\n\t\tself.assertGreater(post.id, 0)\r\n\t\tself.assertEqual(post.author.user.username, expected_username)\r\n\t\tself.assertEqual(post.image_link, \"https://a.espncdn.com/photo/2019/0315/r514924_600x600_1-1.jpg\")\r\n\r\n\tdef test_insert_no_source_link_no_image_link(self):\r\n\t\tcontent = {\r\n\t\t\t\"author\": None,\r\n\t\t\t\"title\": \"Colts lose OG Nelson to same injury as Wentz\",\r\n\t\t\t\"description\": \"Colts All-Pro guard Quenton Nelson will miss the next five to 12 weeks after suffering the same foot injury as quarterback Carson Wentz.\",\r\n\t\t\t\"url\": \"https://www.espn.com/nfl/story/_/id/31950239/indianapolis-colts-ol-quenton-nelson-5-12-weeks-foot-injury\",\r\n\t\t\t\"source\": None,\r\n\t\t\t\"image\": None,\r\n\t\t\t\"category\": \"sports\",\r\n\t\t\t\"language\": \"en\",\r\n\t\t\t\"country\": \"us\",\r\n\t\t\t\"published_at\": \"2021-08-03T16:35:14+00:00\"\r\n\t\t}\r\n\t\tpost = insert_post_from_mediastack(content)\r\n\t\texpected_username = 'anonymous@coolpress.com'\r\n\t\tself.assertGreater(post.id, 0)\r\n\t\tself.assertEqual(post.author.user.username, expected_username)\r\n\t\tself.assertEqual(post.image_link, None)\r\n\t\tself.assertEqual(post.source_link, 'MediaStack News')\r\n\r\n\tdef test_insert_named_author_post(self):\r\n\t\tcontent = {\r\n\t\t\t\"author\": \"Divya Chaturvedi\",\r\n\t\t\t\"title\": \"Biles Says She Is Proud To Bring The Topic of Mental Health This Olympics\",\r\n\t\t\t\"description\": \"Simone Arianne Biles is an American artistic gymnast. Having a combined total of 32 Olympic and World Championship medals, Biles has tied with Larisa Latynina as the most decorated gymnast of all time. Biles made her long-awaited return to the Olympic Games on Tuesday, taking bronze in the beam final won by Chinese teenager Guan&#8230;The post Biles Says She Is Proud To Bring The Topic of Mental Health This Olympics appeared first on EssentiallySports.\",\r\n\t\t\t\"url\": \"https://www.essentiallysports.com/tokyo-olympics-gymnastics-news-2020-biles-says-she-is-proud-to-bring-the-topic-of-mental-health-this-olympics/\",\r\n\t\t\t\"source\": \"Essentially Sports\",\r\n\t\t\t\"image\": \"https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg\",\r\n\t\t\t\"category\": \"sports\",\r\n\t\t\t\"language\": \"en\",\r\n\t\t\t\"country\": \"us\",\r\n\t\t\t\"published_at\": \"2021-08-03T17:03:36+00:00\"\r\n\t\t}\r\n\t\tpost = insert_post_from_mediastack(content)\r\n\t\texpected_username = 'dchaturvedi@coolpress.com'\r\n\t\tself.assertGreater(post.id, 0)\r\n\t\tself.assertEqual(post.author.user.username, expected_username)\r\n\t\tself.assertEqual(post.image_link, \"https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg\")\r\n\r\n\tdef test_insert_named_with_3_author_post(self):\r\n\t\tcontent = {\r\n\t\t\t\"author\": \"Divya Chaturvedi SecondLast\",\r\n\t\t\t\"title\": \"Biles Says She Is Proud To Bring The Topic of Mental Health This Olympics\",\r\n\t\t\t\"description\": \"Simone Arianne Biles is an American artistic gymnast. Having a combined total of 32 Olympic and World Championship medals, Biles has tied with Larisa Latynina as the most decorated gymnast of all time. Biles made her long-awaited return to the Olympic Games on Tuesday, taking bronze in the beam final won by Chinese teenager Guan&#8230;The post Biles Says She Is Proud To Bring The Topic of Mental Health This Olympics appeared first on EssentiallySports.\",\r\n\t\t\t\"url\": \"https://www.essentiallysports.com/tokyo-olympics-gymnastics-news-2020-biles-says-she-is-proud-to-bring-the-topic-of-mental-health-this-olympics/\",\r\n\t\t\t\"source\": \"Essentially Sports\",\r\n\t\t\t\"image\": \"https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg\",\r\n\t\t\t\"category\": \"sports\",\r\n\t\t\t\"language\": \"en\",\r\n\t\t\t\"country\": \"us\",\r\n\t\t\t\"published_at\": \"2021-08-03T17:03:36+00:00\"\r\n\t\t}\r\n\t\tpost = insert_post_from_mediastack(content)\r\n\t\texpected_username = 'dsecondlast@coolpress.com'\r\n\t\tself.assertGreater(post.id, 0)\r\n\t\tself.assertEqual(post.author.user.username, expected_username)\r\n\t\tself.assertEqual(post.image_link, \"https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg\")\r\n\r\n\tdef test_get_mediastack_sport_posts(self):\r\n\t\tcategories = ['sports', 'health']\r\n\t\tlanguages = ['en']\r\n\t\tlimit = 10\r\n\t\tposts_created = gather_and_create_news(categories, languages, limit)\r\n\t\tself.assertEqual(len(posts_created), 10)\r\n\r\n\t\tposts_created_twice = gather_and_create_news(categories, languages, limit)\r\n\t\tself.assertLess(len(posts_created_twice), len(posts_created))\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/tests.py b/coolpress/press/tests.py
+--- a/coolpress/press/tests.py	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ b/coolpress/press/tests.py	(date 1636128353484)
+@@ -379,8 +379,8 @@
+ 		categories = ['sports', 'health']
+ 		languages = ['en']
+ 		limit = 10
+-		posts_created = gather_and_create_news(categories, languages, limit)
++		posts_created = gather_and_create_news(categories, languages, ['us'], limit)
+ 		self.assertEqual(len(posts_created), 10)
+ 
+-		posts_created_twice = gather_and_create_news(categories, languages, limit)
++		posts_created_twice = gather_and_create_news(categories, languages, ['us'], limit)
+ 		self.assertLess(len(posts_created_twice), len(posts_created))
+Index: coolpress/press/posts_update.html
+===================================================================
+diff --git a/coolpress/press/posts_update.html b/coolpress/press/posts_update.html
+deleted file mode 100644
+--- a/coolpress/press/posts_update.html	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ /dev/null	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
+@@ -1,14 +0,0 @@
+-{% extends 'base.html' %}
+-
+-{% block content %}
+-    <h1>Create or update a post</h1>
+-    <form method="post">
+-        {% csrf_token %}
+-        <div class="form-group">
+-            {{form}}
+-        </div>
+-        <div class="text-center">
+-            <input class="btn btn-success mt-3" type="submit" value="Submit">
+-        </div>
+-    </form>
+-{% endblock %}
+\ No newline at end of file
+Index: coolpress/press/management/commands/get_api_news.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from django.core.management import BaseCommand\r\n\r\nfrom press.mediastack_manager import gather_and_create_news\r\n\r\n\r\nclass Command(BaseCommand):\r\n\tdef add_arguments(self, parser):\r\n\t\tparser.add_argument('categories', nargs='+', help='What news categories to pull information from')\r\n\t\tparser.add_argument('--limit', type=int, help='Limit of posts to be added')\r\n\r\n\tdef handle(self, *args, **options):\r\n\t\tlimit = options['limit']\r\n\t\tcategories = options['categories']\r\n\t\tsingle_categories = []\r\n\r\n\t\tfor cat in categories:\r\n\t\t\tif ',' in cat:\r\n\t\t\t\tsingle_categories.extend(cat.split(','))\r\n\t\t\telse:\r\n\t\t\t\tsingle_categories.append(cat)\r\n\r\n\t\tinserted_posts = gather_and_create_news(categories, ['en'], limit)\r\n\r\n\t\tself.stdout.write(f'Inserted {len(inserted_posts)} posts of news about {single_categories} with limit {limit}')
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/management/commands/get_api_news.py b/coolpress/press/management/commands/get_api_news.py
+--- a/coolpress/press/management/commands/get_api_news.py	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ b/coolpress/press/management/commands/get_api_news.py	(date 1636128353463)
+@@ -3,22 +3,42 @@
+ from press.mediastack_manager import gather_and_create_news
+ 
+ 
++# get_api_news
+ class Command(BaseCommand):
+ 	def add_arguments(self, parser):
+-		parser.add_argument('categories', nargs='+', help='What news categories to pull information from')
++		parser.add_argument('categories', nargs='+', help='List of categories to get new for')
++		parser.add_argument('--countries', nargs='+', help='List of countries to get news for')
+ 		parser.add_argument('--limit', type=int, help='Limit of posts to be added')
+ 
+ 	def handle(self, *args, **options):
+ 		limit = options['limit']
+ 		categories = options['categories']
++		countries = options['countries']
++
++		single_countries = []
+ 		single_categories = []
+ 
++		if not countries:
++			countries = ['us']
++			single_countries = ['us']
++		else:
++			for cntry in countries:
++				if ',' in cntry:
++					single_countries.extend(cntry.split(','))
++				else:
++					single_countries.append(cntry)
++
+ 		for cat in categories:
+ 			if ',' in cat:
+ 				single_categories.extend(cat.split(','))
+ 			else:
+ 				single_categories.append(cat)
+ 
+-		inserted_posts = gather_and_create_news(categories, ['en'], limit)
++		inserted_posts = gather_and_create_news(single_categories, ['en'], single_countries, limit)
+ 
+-		self.stdout.write(f'Inserted {len(inserted_posts)} posts of news about {single_categories} with limit {limit}')
+\ No newline at end of file
++		self.stdout.write(
++			f'\n\nInserted {len(inserted_posts)} {"posts" if len(inserted_posts) != 1 else "post"} '
++			f'with news about {single_categories} from {len(single_countries)} '
++			f'{"countries" if len(single_countries) != 1 else "country"} ({",".join(countries)}) '
++			f'with limit {limit} in english!\n'
++		)
+Index: coolpress/press/user_management.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from typing import Optional\r\n\r\nfrom bs4 import BeautifulSoup\r\nfrom libgravatar import Gravatar\r\nfrom pip._vendor import requests\r\n\r\n\r\ndef get_gravatar_link(email: str) -> Optional[str]:\r\n    g = Gravatar(email)\r\n    return g.get_image()\r\n\r\n\r\ndef extract_github_repositories(content) -> Optional[int]:\r\n    soup = BeautifulSoup(content, 'html.parser')\r\n    css_selector = 'div.UnderlineNav > nav > a:nth-child(2) > span'\r\n    css_selector = 'a[href$=\"repositories\"] span'\r\n    repositories_info = soup.select_one(css_selector)\r\n    return int(repositories_info.text)\r\n\r\n\r\ndef get_github_repositories(github_profile):\r\n    url = f'https://github.com/{github_profile}'\r\n    response = requests.get(url)\r\n    gh_repositories = None\r\n    if response.status_code == 200:\r\n        gh_repositories = extract_github_repositories(response.content)\r\n    return gh_repositories
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/user_management.py b/coolpress/press/user_management.py
+--- a/coolpress/press/user_management.py	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ b/coolpress/press/user_management.py	(date 1636128353488)
+@@ -6,22 +6,44 @@
+ 
+ 
+ def get_gravatar_link(email: str) -> Optional[str]:
+-    g = Gravatar(email)
+-    return g.get_image()
++	g = Gravatar(email)
++	return g.get_image(size=280)
+ 
+ 
+ def extract_github_repositories(content) -> Optional[int]:
+-    soup = BeautifulSoup(content, 'html.parser')
+-    css_selector = 'div.UnderlineNav > nav > a:nth-child(2) > span'
+-    css_selector = 'a[href$="repositories"] span'
+-    repositories_info = soup.select_one(css_selector)
+-    return int(repositories_info.text)
++	soup = BeautifulSoup(content, 'html.parser')
++	css_selector = 'a[href$="repositories"] span'
++	repositories_info = soup.select_one(css_selector)
++
++	return int(repositories_info.text)
+ 
+ 
+-def get_github_repositories(github_profile):
+-    url = f'https://github.com/{github_profile}'
+-    response = requests.get(url)
+-    gh_repositories = None
+-    if response.status_code == 200:
+-        gh_repositories = extract_github_repositories(response.content)
+-    return gh_repositories
+\ No newline at end of file
++def extract_github_followers(content) -> Optional[int]:
++	soup = BeautifulSoup(content, 'html.parser')
++	css_selector = 'a[href$="followers"] span'
++	followers_info = soup.select_one(css_selector)
++
++	return int(followers_info.text)
++
++
++def extract_github_following(content) -> Optional[int]:
++	soup = BeautifulSoup(content, 'html.parser')
++	css_selector = 'a[href$="following"] span'
++	following_info = soup.select_one(css_selector)
++
++	return int(following_info.text)
++
++
++def get_github_data(github_profile):
++	url = f'https://github.com/{github_profile}'
++	response = requests.get(url)
++	gh_repositories = None
++	gh_followers = None
++	gh_following = None
++
++	if response.status_code == 200:
++		gh_repositories = extract_github_repositories(response.content)
++		gh_followers = extract_github_followers(response.content)
++		gh_following = extract_github_following(response.content)
++
++	return gh_repositories, gh_followers, gh_following
+Index: coolpress/press/models.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from enum import Enum\r\n\r\nfrom django.contrib.auth.models import User\r\nfrom django.db import models\r\nfrom django.urls import reverse\r\n\r\nfrom press.user_management import get_gravatar_link, get_github_repositories\r\n\r\n\r\nclass CoolUser(models.Model):\r\n    user = models.OneToOneField(User, on_delete=models.CASCADE)\r\n    github_profile = models.CharField(max_length=150, null=True, blank=True)\r\n    gh_repositories = models.IntegerField(null=True, blank=True)\r\n    gh_followers = models.IntegerField(null=True, blank=True)\r\n    last_followers_check = models.DateTimeField(null=True, blank=True)\r\n    gravatar_link = models.CharField(max_length=400, null=True, blank=True)\r\n\r\n    def __str__(self):\r\n        user = self.user\r\n        return f'{user.first_name} {user.last_name} ({user.username})'\r\n\r\n    def save(self, *args, **kwargs):\r\n        super(CoolUser, self).save(*args, **kwargs)\r\n\r\n        if self.user.email:\r\n            email = self.user.email\r\n            gravatar_link = get_gravatar_link(email)\r\n            if gravatar_link != self.gravatar_link:\r\n                self.gravatar_link = gravatar_link\r\n                self.save()\r\n        gh_repositories = None\r\n        if self.github_profile:\r\n            gh_repositories = get_github_repositories(self.github_profile)\r\n\r\n        if gh_repositories != self.gh_repositories:\r\n            self.gh_repositories = gh_repositories\r\n            self.save()\r\n\r\nclass Category(models.Model):\r\n    class Meta:\r\n        verbose_name_plural = \"categories\"\r\n\r\n    label = models.CharField(max_length=200)\r\n    slug = models.SlugField(max_length=200, unique=True)\r\n\r\n    def get_absolute_url(self):\r\n        return reverse('category-detail', kwargs={'pk': self.pk})\r\n\r\n    def __str__(self):\r\n        return f'{self.slug}'\r\n\r\n\r\nclass PostStatus(Enum):\r\n    DRAFT = 'DRAFT'\r\n    PUBLISHED = 'PUBLISHED'\r\n\r\n\r\nPOST_LABELED_STATUS = [\r\n    (PostStatus.DRAFT.value, 'Draft'),\r\n    (PostStatus.PUBLISHED.value, 'Published post'),\r\n]\r\n\r\n\r\nclass Post(models.Model):\r\n    title = models.CharField(max_length=400)\r\n    body = models.TextField()\r\n    image_link = models.CharField(max_length=400, null=True, blank=True)\r\n\r\n    word_cloud_link = models.CharField(max_length=400, null=True, blank=True)\r\n\r\n    source_link = models.CharField(max_length=400, null=True, blank=True)\r\n    source_label = models.CharField(max_length=400, null=True, blank=True)\r\n\r\n    status = models.CharField(\r\n        max_length=32,\r\n        choices=POST_LABELED_STATUS,\r\n        default=PostStatus.DRAFT,\r\n    )\r\n\r\n    author = models.ForeignKey(CoolUser, on_delete=models.CASCADE)\r\n    category = models.ForeignKey(Category, on_delete=models.CASCADE)\r\n\r\n    creation_date = models.DateTimeField(auto_now_add=True)\r\n    last_update = models.DateTimeField(auto_now=True)\r\n\r\n    def __str__(self):\r\n        return f'{self.title} - by {self.author.user.username}'
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/models.py b/coolpress/press/models.py
+--- a/coolpress/press/models.py	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ b/coolpress/press/models.py	(date 1636128353468)
+@@ -1,87 +1,114 @@
++from datetime import timedelta, datetime
+ from enum import Enum
+ 
++from django.utils import timezone
+ from django.contrib.auth.models import User
+ from django.db import models
+ from django.urls import reverse
+ 
+-from press.user_management import get_gravatar_link, get_github_repositories
++from press.user_management import get_gravatar_link, get_github_data
+ 
+ 
+ class CoolUser(models.Model):
+-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+-    github_profile = models.CharField(max_length=150, null=True, blank=True)
+-    gh_repositories = models.IntegerField(null=True, blank=True)
+-    gh_followers = models.IntegerField(null=True, blank=True)
+-    last_followers_check = models.DateTimeField(null=True, blank=True)
+-    gravatar_link = models.CharField(max_length=400, null=True, blank=True)
++	user = models.OneToOneField(User, on_delete=models.CASCADE)
++	github_profile = models.CharField(max_length=150, null=True, blank=True)
++	gh_repositories = models.IntegerField(null=True, blank=True)
++	gh_followers = models.IntegerField(null=True, blank=True)
++	gh_following = models.IntegerField(null=True, blank=True)
++	last_followers_check = models.DateTimeField(null=True, blank=True)
++	gravatar_link = models.CharField(max_length=400, null=True, blank=True)
+ 
+-    def __str__(self):
+-        user = self.user
+-        return f'{user.first_name} {user.last_name} ({user.username})'
++	def __str__(self):
++		user = self.user
++		return f'{user.first_name} {user.last_name} ({user.username})'
+ 
+-    def save(self, *args, **kwargs):
+-        super(CoolUser, self).save(*args, **kwargs)
++	def save(self, *args, **kwargs):
++		super(CoolUser, self).save(*args, **kwargs)
+ 
+-        if self.user.email:
+-            email = self.user.email
+-            gravatar_link = get_gravatar_link(email)
+-            if gravatar_link != self.gravatar_link:
+-                self.gravatar_link = gravatar_link
+-                self.save()
+-        gh_repositories = None
+-        if self.github_profile:
+-            gh_repositories = get_github_repositories(self.github_profile)
++		date_for_check = datetime.now()
++		date_for_check += timedelta(days=1)
++		min_date_for_check = self.last_followers_check
++		min_date_for_check += timedelta(days=1)
++
++		gh_repositories = None
++		gh_followers = None
++		gh_following = None
++
++		if self.user.email:
++			email = self.user.email
++			gravatar_link = get_gravatar_link(email)
++
++			# Getting gravatar link based on user email
++			if gravatar_link != self.gravatar_link:
++				self.gravatar_link = gravatar_link
++				self.save()
+ 
+-        if gh_repositories != self.gh_repositories:
+-            self.gh_repositories = gh_repositories
+-            self.save()
++		# Getting github profile data
++		if self.github_profile and (not self.last_followers_check or date_for_check > min_date_for_check):
++			gh_repositories, gh_followers, gh_following = get_github_data(self.github_profile)
++			self.last_followers_check = timezone.now()
++			self.save()
++
++		# Checking if there is difference in the data and if so resaving it
++		if gh_repositories and gh_repositories != self.gh_repositories:
++			self.gh_repositories = gh_repositories
++			self.save()
+ 
++		if gh_followers and gh_followers != self.gh_followers:
++			self.gh_followers = gh_followers
++			self.save()
++
++		if gh_following and gh_following != self.gh_following:
++			self.gh_following = gh_following
++			self.save()
++
++
+ class Category(models.Model):
+-    class Meta:
+-        verbose_name_plural = "categories"
++	class Meta:
++		verbose_name_plural = "categories"
+ 
+-    label = models.CharField(max_length=200)
+-    slug = models.SlugField(max_length=200, unique=True)
++	label = models.CharField(max_length=200)
++	slug = models.SlugField(max_length=200, unique=True)
+ 
+-    def get_absolute_url(self):
+-        return reverse('category-detail', kwargs={'pk': self.pk})
++	def get_absolute_url(self):
++		return reverse('category-detail', kwargs={'pk': self.pk})
+ 
+-    def __str__(self):
+-        return f'{self.slug}'
++	def __str__(self):
++		return f'{self.slug}'
+ 
+ 
+ class PostStatus(Enum):
+-    DRAFT = 'DRAFT'
+-    PUBLISHED = 'PUBLISHED'
++	DRAFT = 'DRAFT'
++	PUBLISHED = 'PUBLISHED'
+ 
+ 
+ POST_LABELED_STATUS = [
+-    (PostStatus.DRAFT.value, 'Draft'),
+-    (PostStatus.PUBLISHED.value, 'Published post'),
++	(PostStatus.DRAFT.value, 'Draft'),
++	(PostStatus.PUBLISHED.value, 'Published post'),
+ ]
+ 
+ 
+ class Post(models.Model):
+-    title = models.CharField(max_length=400)
+-    body = models.TextField()
+-    image_link = models.CharField(max_length=400, null=True, blank=True)
++	title = models.CharField(max_length=400)
++	body = models.TextField()
++	image_link = models.CharField(max_length=400, null=True, blank=True)
+ 
+-    word_cloud_link = models.CharField(max_length=400, null=True, blank=True)
++	word_cloud_link = models.CharField(max_length=400, null=True, blank=True)
+ 
+-    source_link = models.CharField(max_length=400, null=True, blank=True)
+-    source_label = models.CharField(max_length=400, null=True, blank=True)
++	source_link = models.CharField(max_length=400, null=True, blank=True)
++	source_label = models.CharField(max_length=400, null=True, blank=True)
+ 
+-    status = models.CharField(
+-        max_length=32,
+-        choices=POST_LABELED_STATUS,
+-        default=PostStatus.DRAFT,
+-    )
++	status = models.CharField(
++		max_length=32,
++		choices=POST_LABELED_STATUS,
++		default=PostStatus.DRAFT,
++	)
+ 
+-    author = models.ForeignKey(CoolUser, on_delete=models.CASCADE)
+-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
++	author = models.ForeignKey(CoolUser, on_delete=models.CASCADE)
++	category = models.ForeignKey(Category, on_delete=models.CASCADE)
+ 
+-    creation_date = models.DateTimeField(auto_now_add=True)
+-    last_update = models.DateTimeField(auto_now=True)
++	creation_date = models.DateTimeField(auto_now_add=True)
++	last_update = models.DateTimeField(auto_now=True)
+ 
+-    def __str__(self):
+-        return f'{self.title} - by {self.author.user.username}'
+\ No newline at end of file
++	def __str__(self):
++		return f'{self.title} - by {self.author.user.username}'
+Index: coolpress/press/templates/footer.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><footer class=\"page-footer font-small blue pt-4 mt-5 border-top\">\r\n\t<div class=\"container-fluid text-center text-md-left\">\r\n\t\t<div class=\"row\">\r\n\t\t\t<div class=\"col-10 px-0 pr-3\">\r\n\t\t\t\t<h5>CoolPress</h5>\r\n\t\t\t\t<p>\r\n\t\t\t\t\tThis is a very fun project we did as a course in Harbour.Space university.<br/>\r\n\t\t\t\t\tWe learned all about the Django framework and how to utilise its power!<br/>\r\n\t\t\t\t\tI also brushed up on my Bootstrap skills and understood testing better.\r\n\t\t\t\t</p>\r\n\t\t\t</div>\r\n\r\n\t\t\t<hr class=\"clearfix w-100 d-md-none pb-3\">\r\n\r\n\t\t\t<div class=\"col-md-2 mb-md-0 mb-3 text-right\">\r\n\t\t\t\t<h5 class=\"text-uppercase\">Links</h5>\r\n\r\n\t\t\t\t<ul class=\"list-unstyled\">\r\n\t\t\t\t\t<li>\r\n\t\t\t\t\t\t<a href=\"{% url 'about-page' %}\">About</a>\r\n\t\t\t\t\t</li>\r\n\t\t\t\t\t<li>\r\n\t\t\t\t\t\t<a href=\"{% url 'default_api' %}\" target=\"_BLANK\">API</a>\r\n\t\t\t\t\t</li>\r\n\t\t\t\t</ul>\r\n\t\t\t</div>\r\n\t\t</div>\r\n\t</div>\r\n\t<div class=\"footer-copyright text-center py-3\">Copyright © {% now 'Y' %} | Valeri Sabev</div>\r\n</footer>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/templates/footer.html b/coolpress/press/templates/footer.html
+--- a/coolpress/press/templates/footer.html	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ b/coolpress/press/templates/footer.html	(date 1636128353484)
+@@ -20,6 +20,9 @@
+ 						<a href="{% url 'about-page' %}">About</a>
+ 					</li>
+ 					<li>
++						<a href="/admin">Admin</a>
++					</li>
++					<li>
+ 						<a href="{% url 'default_api' %}" target="_BLANK">API</a>
+ 					</li>
+ 				</ul>
+Index: coolpress/press/mediastack_manager.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import os\r\nimport requests\r\n\r\nfrom typing import List\r\n\r\nfrom press.models import Post, User, CoolUser, Category, PostStatus\r\n\r\n\r\ndef insert_post_from_mediastack(single_post):\r\n\tauthor = single_post['author']\r\n\tcategory = single_post['category']\r\n\temail = single_post['source']\r\n\ttitle = single_post['title']\r\n\tbody = single_post['description']\r\n\timage_link = single_post['image']\r\n\tsource_link = single_post['source']\r\n\r\n\t# Source link check\r\n\tif not source_link:\r\n\t\tsource_link = 'MediaStack News'\r\n\t\temail = 'mediastakcnews.com'\r\n\r\n\t# Author and username handling\r\n\tif not author:\r\n\t\tauthor = 'anonymous'\r\n\t\tusername = 'anonymous@coolpress.com'\r\n\telse:\r\n\t\tif 'staff' in author.lower():\r\n\t\t\tusername = f'staff@{email.lower()}'\r\n\t\telse:\r\n\t\t\tauthor_names = author.lower().split(' ')\r\n\r\n\t\t\tif len(author_names) == 1:\r\n\t\t\t\tnew_author_name = author_names[0]\r\n\t\t\telse:\r\n\t\t\t\tnew_author_name = author_names[0][0] + author_names[-1]\r\n\r\n\t\t\tusername = f'{new_author_name}@coolpress.com'\r\n\r\n\t# New category if post category does not exist\r\n\ttry:\r\n\t\tpost_category = Category.objects.get(slug=category)\r\n\texcept Category.DoesNotExist:\r\n\t\tnew_category = Category.objects.create(label=f'{category} News', slug=category)\r\n\t\tpost_category = new_category\r\n\r\n\t# New user if post author does not exist\r\n\ttry:\r\n\t\tuser = User.objects.get(email=email)\r\n\t\tpost_author = CoolUser.objects.get(user_id=user.id)\r\n\texcept User.DoesNotExist:\r\n\t\tu = User.objects.create(email=email, username=username, first_name=author, last_name=author)\r\n\t\tcu = CoolUser.objects.create(user=u)\r\n\t\tpost_author = cu\r\n\r\n\t# Check if exact same post with body and title exists\r\n\ttry:\r\n\t\tPost.objects.get(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id)\r\n\t\treturn None\r\n\texcept Post.DoesNotExist:\r\n\t\treturn Post.objects.create(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id, status=PostStatus.PUBLISHED.value)\r\n\r\n\r\ndef gather_and_create_news(categories, languages, limit) -> List[Post]:\r\n\tresponse_array = []\r\n\tmediastack_api = os.environ['MEDIASTACK_API']\r\n\turl_categories = ','.join(categories)\r\n\turl_languages = ','.join(languages)\r\n\r\n\turl = f'http://api.mediastack.com/v1/news?access_key={mediastack_api}&categories={url_categories}&languages={url_languages}&limit={limit}'\r\n\tresponse = requests.get(url)\r\n\tdata = response.json()\r\n\r\n\tfor d in data['data']:\r\n\t\tpost = insert_post_from_mediastack(d)\r\n\r\n\t\tif post:\r\n\t\t\tresponse_array.append(post)\r\n\r\n\treturn response_array\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/mediastack_manager.py b/coolpress/press/mediastack_manager.py
+--- a/coolpress/press/mediastack_manager.py	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ b/coolpress/press/mediastack_manager.py	(date 1636128353468)
+@@ -49,9 +49,14 @@
+ 		user = User.objects.get(email=email)
+ 		post_author = CoolUser.objects.get(user_id=user.id)
+ 	except User.DoesNotExist:
+-		u = User.objects.create(email=email, username=username, first_name=author, last_name=author)
+-		cu = CoolUser.objects.create(user=u)
+-		post_author = cu
++		try:
++			# Fix username collision bug
++			user = User.objects.get(username=username)
++			post_author = CoolUser.objects.get(user_id=user.id)
++		except User.DoesNotExist:
++			u = User.objects.create(email=email, username=username, first_name=author, last_name=author)
++			cu = CoolUser.objects.create(user=u)
++			post_author = cu
+ 
+ 	# Check if exact same post with body and title exists
+ 	try:
+@@ -61,13 +66,14 @@
+ 		return Post.objects.create(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id, status=PostStatus.PUBLISHED.value)
+ 
+ 
+-def gather_and_create_news(categories, languages, limit) -> List[Post]:
++def gather_and_create_news(categories, languages, countries, limit) -> List[Post]:
+ 	response_array = []
+ 	mediastack_api = os.environ['MEDIASTACK_API']
+ 	url_categories = ','.join(categories)
+ 	url_languages = ','.join(languages)
++	url_countries = ','.join(countries)
+ 
+-	url = f'http://api.mediastack.com/v1/news?access_key={mediastack_api}&categories={url_categories}&languages={url_languages}&limit={limit}'
++	url = f'http://api.mediastack.com/v1/news?access_key={mediastack_api}&categories={url_categories}&languages={url_languages}&countries={url_countries}&limit={limit}'
+ 	response = requests.get(url)
+ 	data = response.json()
+ 
+Index: coolpress/press/templates/coolusers/cooluser_detail.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{% extends 'base.html' %}\r\n\r\n{% block content %}\r\n<h1 class=\"text-center\"> Username: {{object.user.username}}</h1>\r\n\r\n<div class=\"text-center\">\r\n    {% if object.gravatar_link %}\r\n\r\n    <img style=\"min-width: 100px\" src=\"{{object.gravatar_link}}\" alt=\"\">\r\n    {% endif %}\r\n    <div class=\"email font-weight-bold text-center\">{{object.user.email}}</div>\r\n</div>\r\n\r\n{% if object.github_profile %}\r\n<div class=\"text-center\">\r\n\r\n\r\n    <h2>Github Information</h2>\r\n    <ul>\r\n        <li>Profile: {{object.github_profile}}</li>\r\n        {% if object.gh_repositories %}\r\n        <li>Repositories: {{object.gh_repositories}}</li>\r\n        {% endif %}\r\n    </ul>\r\n    <div>\r\n        <div class=\"pt-2\">\r\n            <img src=\"https://img.shields.io/github/stars/{{object.github_profile}}.svg\"\r\n                 alt=\"\">\r\n        </div>\r\n        <div class=\"pt-2\">\r\n\r\n            <img src=\"https://img.shields.io/github/followers/{{object.github_profile}}.svg?style=social&label=Follow&maxAge=2592000\"\r\n                 alt=\"Github profile\">\r\n        </div>\r\n        <div class=\"pt-2\">\r\n            <a class=\"btn btn-info\" target=\"_blank\"\r\n               href=\"https://github.com/{{object.github_profile}}/\">Check\r\n                on\r\n                github</a>\r\n        </div>\r\n    </div>\r\n    {% endif %}\r\n\r\n\r\n    {% endblock %}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/templates/coolusers/cooluser_detail.html b/coolpress/press/templates/coolusers/cooluser_detail.html
+--- a/coolpress/press/templates/coolusers/cooluser_detail.html	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ b/coolpress/press/templates/coolusers/cooluser_detail.html	(date 1636128353479)
+@@ -1,45 +1,58 @@
+ {% extends 'base.html' %}
+ 
++<!-- Tab title -->
++{% block title %} User - {{object.user.username}} {% endblock %}
++
++<!-- Data for the navbar -->
++{% block navbar %}
++	{% with header="Showing cooluser information" back_btn_url="cooluser-list" %}
++		{% include 'navbar.html' %}
++	{% endwith %}
++{% endblock %}
++
++<!-- Main Page Content -->
+ {% block content %}
+-<h1 class="text-center"> Username: {{object.user.username}}</h1>
++	<div class="d-flex flex-column align-items-center border-top pt-5">
++		<div class="d-flex justify-content-center col-12">
++			<div class="d-flex flex-column col-4">
++				<h4 class="mt-4 text-center">User Information:</h4>
++				<div class="d-flex flex-column align-items-center text-center my-4">
++					<span><b>Email:</b> {{object.user.email|default:'-'}}</span>
++					<span><b>Username:</b> {{object.user.username|default:'-'}}</span>
++					<span><b>First Name:</b> {{object.user.first_name|default:'-'}}</span>
++					<span><b>Last Name:</b> {{object.user.last_name|default:'-'}}</span>
++				</div>
++			</div>
+ 
+-<div class="text-center">
+-    {% if object.gravatar_link %}
+-
+-    <img style="min-width: 100px" src="{{object.gravatar_link}}" alt="">
+-    {% endif %}
+-    <div class="email font-weight-bold text-center">{{object.user.email}}</div>
+-</div>
+-
+-{% if object.github_profile %}
+-<div class="text-center">
+-
+-
+-    <h2>Github Information</h2>
+-    <ul>
+-        <li>Profile: {{object.github_profile}}</li>
+-        {% if object.gh_repositories %}
+-        <li>Repositories: {{object.gh_repositories}}</li>
+-        {% endif %}
+-    </ul>
+-    <div>
+-        <div class="pt-2">
+-            <img src="https://img.shields.io/github/stars/{{object.github_profile}}.svg"
+-                 alt="">
+-        </div>
+-        <div class="pt-2">
+-
+-            <img src="https://img.shields.io/github/followers/{{object.github_profile}}.svg?style=social&label=Follow&maxAge=2592000"
+-                 alt="Github profile">
+-        </div>
+-        <div class="pt-2">
+-            <a class="btn btn-info" target="_blank"
+-               href="https://github.com/{{object.github_profile}}/">Check
+-                on
+-                github</a>
+-        </div>
+-    </div>
+-    {% endif %}
+-
+-
+-    {% endblock %}
+\ No newline at end of file
++			{% if object.gravatar_link %}
++				<div class="d-flex flex-column justify-content-center align-items-center col-4">
++					<img style="width: 200px" src="{{object.gravatar_link}}" alt="User gravatar image">
++				</div>
++			{% endif %}
++
++			{% if object.github_profile %}
++				<div class="d-flex flex-column col-4">
++					<h4 class="mt-4 text-center">Github Information:</h4>
++					<div class="d-flex flex-column align-items-center text-center my-4">
++						<span><b>Profile:</b> {{object.github_profile|default:'-'}}</span>
++						<span><b>Repositories:</b> {{object.gh_repositories|default:'-'}}</span>
++						<span><b>Followers:</b> {{object.gh_followers|default:'-'}}</span>
++						<span><b>Following:</b> {{object.gh_following|default:'-'}}</span>
++					</div>
++				</div>
++			{% endif %}
++		</div>
++
++		<div class="mt-4 text-center">
++			<div class="pt-2">
++				<img src="https://img.shields.io/github/stars/{{object.github_profile}}.svg" alt="">
++			</div>
++			<div class="pt-2">
++				<img src="https://img.shields.io/github/followers/{{object.github_profile}}.svg?style=social&label=Follow&maxAge=2592000" alt="Github profile">
++			</div>
++			<div class="pt-2">
++				<a class="btn btn-info" target="_blank" href="https://github.com/{{object.github_profile}}/">Check on github</a>
++			</div>
++		</div>
++	</div>
++{% endblock %}
+\ No newline at end of file
+Index: coolpress/press/templates/coolusers/cooluser_list.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{% extends 'base.html' %}\r\n\r\n{% block content %}\r\n<h1>List of CoolUser</h1>\r\n\r\n\r\n<table class=\"table table-striped\">\r\n  <thead>\r\n    <tr>\r\n      <th scope=\"col\">#</th>\r\n      <th scope=\"col\">Username</th>\r\n      <th scope=\"col\">Email</th>\r\n      <th scope=\"col\">Github Profile</th>\r\n      <th scope=\"col\">Github Repositories</th>\r\n      <th scope=\"col\">Posts</th>\r\n    </tr>\r\n  </thead>\r\n  <tbody>\r\n  {% for cuser in object_list %}\r\n    <tr>\r\n      <th scope=\"row\">{{cuser.id}}</th>\r\n      <th><a href=\"{% url 'cooluser-detail' cuser.pk %}\">{{cuser.user.username}}</a></th>\r\n      <th>{{cuser.user.email|default:''}}</th>\r\n      <th>{{cuser.github_profile|default:'-'}}</th>\r\n      <th>{{cuser.gh_repositories|default:'-'}}</th>\r\n      <th>{{cuser.post_set.count|default:'0'}}</th>\r\n    </tr>\r\n  {% endfor %}\r\n\r\n  </tbody>\r\n</table>\r\n\r\n{% endblock %}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/templates/coolusers/cooluser_list.html b/coolpress/press/templates/coolusers/cooluser_list.html
+--- a/coolpress/press/templates/coolusers/cooluser_list.html	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ b/coolpress/press/templates/coolusers/cooluser_list.html	(date 1636128353484)
+@@ -1,33 +1,39 @@
+ {% extends 'base.html' %}
+ 
++<!-- Tab title -->
++{% block title %} List of all users {% endblock %}
++
++<!-- Data for the navbar -->
++{% block navbar %}
++	{% with header="List of all users" back_btn_url="index" %}
++		{% include 'navbar.html' %}
++	{% endwith %}
++{% endblock %}
++
++<!-- Main Page Content -->
+ {% block content %}
+-<h1>List of CoolUser</h1>
+-
+-
+-<table class="table table-striped">
+-  <thead>
+-    <tr>
+-      <th scope="col">#</th>
+-      <th scope="col">Username</th>
+-      <th scope="col">Email</th>
+-      <th scope="col">Github Profile</th>
+-      <th scope="col">Github Repositories</th>
+-      <th scope="col">Posts</th>
+-    </tr>
+-  </thead>
+-  <tbody>
+-  {% for cuser in object_list %}
+-    <tr>
+-      <th scope="row">{{cuser.id}}</th>
+-      <th><a href="{% url 'cooluser-detail' cuser.pk %}">{{cuser.user.username}}</a></th>
+-      <th>{{cuser.user.email|default:''}}</th>
+-      <th>{{cuser.github_profile|default:'-'}}</th>
+-      <th>{{cuser.gh_repositories|default:'-'}}</th>
+-      <th>{{cuser.post_set.count|default:'0'}}</th>
+-    </tr>
+-  {% endfor %}
+-
+-  </tbody>
+-</table>
+-
++	<table class="table table-striped">
++		<thead>
++			<tr>
++				<th scope="col">#</th>
++				<th scope="col">Username</th>
++				<th scope="col">Email</th>
++				<th scope="col">Github Profile</th>
++				<th scope="col">Github Repositories</th>
++				<th scope="col">Posts</th>
++			</tr>
++		</thead>
++		<tbody>
++			{% for cuser in object_list %}
++				<tr>
++					<th scope="row">{{cuser.id}}</th>
++					<th><a href="{% url 'cooluser-detail' cuser.pk %}">{{cuser.user.username}}</a></th>
++					<th>{{cuser.user.email|default:''}}</th>
++					<th>{{cuser.github_profile|default:'-'}}</th>
++					<th>{{cuser.gh_repositories|default:'-'}}</th>
++					<th>{{cuser.post_set.count|default:'0'}}</th>
++				</tr>
++			{% endfor %}
++		</tbody>
++	</table>
+ {% endblock %}
+\ No newline at end of file
+Index: coolpress/press/templates/navbar.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><!-- Navbar -->\r\n<nav class=\"navbar navbar-expand-lg navbar-light bg-light mb-5 py-3\">\r\n\t<a class=\"navbar-brand\" href=\"{% url 'index' %}\">CoolPress</a>\r\n\r\n\t<button class=\"navbar-toggler\" type=\"button\" data-toggle=\"collapse\" data-target=\"#navbarNavDropdown\" aria-controls=\"navbarNavDropdown\" aria-expanded=\"false\" aria-label=\"Toggle navigation\">\r\n\t\t<span class=\"navbar-toggler-icon\"></span>\r\n\t</button>\r\n\r\n\t<div class=\"collapse navbar-collapse\" id=\"navbarNavDropdown\">\r\n\t\t<ul class=\"navbar-nav mx-auto justify-content-end\">\r\n\t\t\t<li class=\"nav-item active mx-3\">\r\n\t\t\t\t<a class=\"nav-link\" href=\"{% url 'about-page' %}\">About</span></a>\r\n\t\t\t</li>\r\n\t\t\t<li class=\"nav-item active mx-3\">\r\n\t\t\t\t<a class=\"nav-link\" target=\"_BLANK\" href=\"/admin\">Admin</span></a>\r\n\t\t\t</li>\r\n\t\t\t<li class=\"nav-item active mx-3\">\r\n\t\t\t\t<a class=\"nav-link\" href=\"{% url 'default_api' %}\">API</span></a>\r\n\t\t\t</li>\r\n\t\t\t<li class=\"nav-item active mx-3\">\r\n\t\t\t\t<a class=\"nav-link\" href=\"{% url 'posts-list' %}\">Posts</span></a>\r\n\t\t\t</li>\r\n\t\t\t<li class=\"nav-item dropdown mx-3\">\r\n\t\t\t\t<a class=\"nav-link dropdown-toggle\" href=\"#\" id=\"navbarDropdownMenuLink\" role=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">\r\n\t\t\t\t\tCategories\r\n\t\t\t\t</a>\r\n\t\t\t\t<div class=\"dropdown-menu\" aria-labelledby=\"navbarDropdownMenuLink\">\r\n\t\t\t\t\t{% for category in categories %}\r\n\t\t\t\t\t\t<a class=\"dropdown-item\" href=\"{% url 'category-posts' category.slug %}\">{{category.label}}</a>\r\n\t\t\t\t\t{% endfor %}\r\n\r\n\t\t\t\t\t<div class=\"dropdown-divider\"></div>\r\n\t\t\t\t\t<a class=\"dropdown-item\" href=\"{% url 'category-list' %}\">Category List</a>\r\n\t\t\t\t</div>\r\n\t\t\t</li>\r\n\t\t</ul>\r\n\r\n\t\t<ul class=\"navbar-nav mr-5 ml-3\">\r\n\t\t\t{% if user.is_authenticated %}\r\n\t\t\t\t<li class=\"nav-item dropdown\">\r\n\t\t\t\t\t<a class=\"nav-link dropdown-toggle\" href=\"#\" id=\"navUser\" role=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">\r\n\t\t\t\t\t\t{% if cooluser.gravatar_link %}\r\n\t\t\t\t\t\t\t<img class=\"gravatar-navbar-icon\" src=\"{{cooluser.gravatar_link}}\" alt=\"\">\r\n\t\t\t\t\t\t{% endif %}\r\n\r\n\t\t\t\t\t\t{{user.username}}\r\n\t\t\t\t\t</a>\r\n\r\n\t\t\t\t\t<div class=\"dropdown-menu\" aria-labelledby=\"navUser\">\r\n\t\t\t\t\t\t<a class=\"dropdown-item\" href=\"{% url 'post-add' %}\">New Post</a>\r\n\t\t\t\t\t\t<a class=\"dropdown-item\" href=\"{% url 'search' %}\">Search</a>\r\n\t\t\t\t\t\t<a class=\"dropdown-item\" href=\"{% url 'logout' %}\">Log Out</a>\r\n\t\t\t\t\t</div>\r\n\t\t\t\t</li>\r\n\t\t\t{% else %}\r\n\t\t\t\t<li class=\"nav-item\">\r\n\t\t\t\t\t<a class=\"btn btn-primary\" href=\"{% url 'login' %}\">Log In</a>\r\n\t\t\t\t</li>\r\n\t\t\t{% endif %}\r\n\t\t</ul>\r\n\t</div>\r\n</nav>\r\n\r\n<!-- Header -->\r\n{% if header %}\r\n\t<h1 class=\"my-5 d-flex justify-content-between\">\r\n\t\t<div>\r\n\t\t\t{% if back_btn_url %}\r\n\t\t\t\t<a href=\"{% url back_btn_url %}\" class=\"btn btn-secondary mr-3\">Back</a>\r\n\t\t\t{% endif %}\r\n\t\t\t<span>\r\n\t\t\t\t{{header}}\r\n\t\t\t</span>\r\n\t\t</div>\r\n\t\t{% if user.is_authenticated and header_btn_text and header_btn_url %}\r\n\t\t\t<div class=\"text-right\">\r\n\t\t\t\t<a class=\"btn btn-success\" role=\"button\" href=\"{% url header_btn_url %}\">\r\n\t\t\t\t\t{{header_btn_text}}\r\n\t\t\t\t</a>\r\n\t\t\t</div>\r\n\t\t{% endif %}\r\n\t</h1>\r\n{% endif %}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/templates/navbar.html b/coolpress/press/templates/navbar.html
+--- a/coolpress/press/templates/navbar.html	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ b/coolpress/press/templates/navbar.html	(date 1636128353484)
+@@ -12,13 +12,13 @@
+ 				<a class="nav-link" href="{% url 'about-page' %}">About</span></a>
+ 			</li>
+ 			<li class="nav-item active mx-3">
+-				<a class="nav-link" target="_BLANK" href="/admin">Admin</span></a>
+-			</li>
+-			<li class="nav-item active mx-3">
+ 				<a class="nav-link" href="{% url 'default_api' %}">API</span></a>
+ 			</li>
+ 			<li class="nav-item active mx-3">
+ 				<a class="nav-link" href="{% url 'posts-list' %}">Posts</span></a>
++			</li>
++			<li class="nav-item active mx-3">
++				<a class="nav-link" href="{% url 'cooluser-list' %}">Users</span></a>
+ 			</li>
+ 			<li class="nav-item dropdown mx-3">
+ 				<a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+Index: README.md
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># coolpress\r\nBy **Valeri Sabev**\r\n\r\nCoolPress is an application to show the power of web development using Django\r\n\r\n## How to Install\r\nWe are about to find our ;P\r\nMake coolpress folder \"source root\" after django-admin command\r\n\r\n## Heroku ssh (after installing the cli)\r\n* heroku run bash -a valchy-coolpress\r\n\r\n## Commands\r\n* django-admin startproject coolpress (to init the project)\r\n* python manage.py startapp press (to start the app)\r\n* python manage.py runserver (run the server / command we created)\r\n* python manage.py createsuperuser\r\n* python manage.py makemigrations (make changes for models)\r\n* python manage.py migrate (update the changes)\r\n* python manage.py sqlmigrate press 0001 (to check SQL commands)\r\n* python manage.py loaddata <name_of_file_without.\\>\r\n* python manage.py shell\r\n* python manage.py flush \r\n* python manage.py collectstatic\r\n* python manage.py dumpdata --all --indent 4 --output sample_posts.json\r\n* python manage.py loaddata sample_posts.json\r\n\r\n## DB Commands (in the shell)\r\n* from press.models import <name_of_model>\r\n* model = <name_of_model>.objects\r\n* model.save()\r\n* model.create()\r\n* model.delete()\r\n* model.get()\r\n* model.update()\r\n* model.values()\r\n* model.exclude()\r\n\r\n* print(model.values('category__label').query) => prints the SQL query\r\n* model.values()[:3] => returns the top three ones only\r\n* model.last().delete() => deletes last entity\r\n* model.order_by('-last_update') => orders in reverse order\r\n\r\n### Models\r\nIt is a bit like a table inside a database, an object.\r\nIn the coolpress example always create the Django users before the CoolUsers.\r\n\r\n### Views\r\nThis is where all the routing takes place.\r\nURLs and requests get sent and received.\r\n\r\n## Testing\r\nTypes of testing: Functional or Non-functional\r\n\r\nUnit Testing < Integration Testing < System Testing < Acceptance Testing\r\n\r\n### Unit Testing\r\n* Fast tests\r\n* Focused on a single functionality\r\n* Coded on the core of the application\r\n* Small functions to test features\r\n\r\n### Integration Testing\r\n* Mid pace tests\r\n* Test interactions with other applications\r\n* e.g databases, APIs, transactions, information checks\r\n* if mocking the integration tests they become unit\r\n\r\n\r\n### System Testing\r\n* Slow and test the entire system\r\n* Ususally end-to-end (e2e) modeling a user story\r\n* e.g user login / logout, create / edit / delete / update of a post\r\n\r\n\r\n### Acceptance Testing\r\n* Super slow tests\r\n* Testing entire functionalities\r\n* Multiple user stories (many system tests)\r\n* Acceptance usually linked with a pre-released version of product\r\n\r\n\r\n## Test Methodologies:\r\n**TDD** - Test Driven Development (very effective way of developing software) => first you write tests then code\r\n**BDD** - Behaviour Driven Development (focused on why we are doing things)\r\n\r\n### TDD - Test Driven Development \r\n* Is an effective way to develop software\r\n* First you write the tests and then you fix the tests\r\n* It is keeping the engaging of the development up\r\n* The tests are already written when handing the new features\r\n* Force you to think on the whole system even before developing the featues and spot desing pitfalls fast\r\n\r\n### BDD - Behaviour Driven Development\r\n* Require a full spec and coordination with product\r\n* Methodology of higher level than TDD\r\n* Focused on Why we are doing things\r\n* Helps a lot the coordination with product department\r\n* Uses some language that join development and Product departments\r\n* Even Product can create the tests by them own because the statements are linked to code\r\n\r\n\r\n### Python Test Frameworks\r\n* UnitTests & Nose2 - used by default, very powerful, quite verbose\r\n* Tox - for testing different python versions, used for compatibility tests\r\n\r\n\r\n## Applied Python Course\r\n* Day 1 - overview django and micro frrameworks, coolpress\r\n* Day 2 - UML, models, databases, permissions, data modeling, relational fields, queries\r\n* Day 3 - admin side, extended queries, shell, superusers\r\n* Day 4 - views, templates / tags, styling / bootstrap, urls / parameters, middlewares, context\r\n* Day 5 - static files, django forms, styling forms, user login, context processor, decorators\r\n* Day 6 - class based views, CBVs detail / list / updates, template naming\r\n* Day 7 - testing, types of tests, python / django testing frameworks\r\n* Day 8 - deployment, github actions, automate deployment, heroku, security\r\n* Day 9 - mid term exam, deploy automations, gravatar images
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/README.md b/README.md
+--- a/README.md	(revision 183221d9c78cd0d2905a9970488072b81a751e64)
++++ b/README.md	(date 1636128353342)
+@@ -1,15 +1,17 @@
+ # coolpress
+ By **Valeri Sabev**
+ 
++This is a very fun project we did as a course in Harbour.Space university.
++We learned all about the Django framework and how to utilise its power!
++I also brushed up on my Bootstrap skills and understood testing better.
++
+ CoolPress is an application to show the power of web development using Django
+ 
+ ## How to Install
+-We are about to find our ;P
++Run `django-admin startproject coolpress (to init the project)`
++
+ Make coolpress folder "source root" after django-admin command
+ 
+-## Heroku ssh (after installing the cli)
+-* heroku run bash -a valchy-coolpress
+-
+ ## Commands
+ * django-admin startproject coolpress (to init the project)
+ * python manage.py startapp press (to start the app)
+@@ -41,6 +43,9 @@
+ * model.last().delete() => deletes last entity
+ * model.order_by('-last_update') => orders in reverse order
+ 
++## Heroku ssh (after installing the CLI)
++* heroku run bash -a valchy-coolpress
++
+ ### Models
+ It is a bit like a table inside a database, an object.
+ In the coolpress example always create the Django users before the CoolUsers.
+@@ -106,7 +111,7 @@
+ 
+ 
+ ## Applied Python Course
+-* Day 1 - overview django and micro frrameworks, coolpress
++* Day 1 - overview django and micro frameworks, coolpress
+ * Day 2 - UML, models, databases, permissions, data modeling, relational fields, queries
+ * Day 3 - admin side, extended queries, shell, superusers
+ * Day 4 - views, templates / tags, styling / bootstrap, urls / parameters, middlewares, context
+@@ -114,4 +119,10 @@
+ * Day 6 - class based views, CBVs detail / list / updates, template naming
+ * Day 7 - testing, types of tests, python / django testing frameworks
+ * Day 8 - deployment, github actions, automate deployment, heroku, security
+-* Day 9 - mid term exam, deploy automations, gravatar images
+\ No newline at end of file
++* Day 9 - mid term exam, deploy automations, gravatar images => scored 90%
++* Day 10 - web scraping, risks of web scraping, selenium, css selectors, html tags
++* Day 11 - StatsDict, implementing tests and web scraping, users and user page, analysis
++* Day 12 - search box, word cloud generation, Q python library
++* Day 13 - RESTful APIs, mediastack, requests, django / heroku automation commands, cron tasks
++* Day 14 - automation commands extended, new features, email notification, user registration
++* Day 15 - final exam
+\ No newline at end of file

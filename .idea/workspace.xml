@@ -1,0 +1,575 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="b0256eb0-7ffa-40e3-82d8-9ae52bafd34d" name="Changes" comment="HW fix" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+        <option value="HTML File" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="PUSH_AUTO_UPDATE" value="true" />
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="myapp-heroku" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="MIXED" />
+  </component>
+  <component name="GitSEFilterConfiguration">
+    <file-type-list>
+      <filtered-out-file-type name="LOCAL_BRANCH" />
+      <filtered-out-file-type name="REMOTE_BRANCH" />
+      <filtered-out-file-type name="TAG" />
+      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
+    </file-type-list>
+  </component>
+  <component name="ProjectId" id="1zjJPtwur0Eczx7mryvmPCFqb80" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="DefaultHtmlFileTemplate" value="HTML File" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/coolpress/manage.py" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Valeri\Desktop\Python\Applied_Python_HS\valeri-sabev-coolpress\coolpress\press\templates\posts" />
+      <recent name="C:\Users\Valeri\Desktop\Python\Applied_Python_HS\valeri-sabev-coolpress\coolpress\press\templates\categories" />
+      <recent name="C:\Users\Valeri\Desktop\Python\Applied_Python_HS\valeri-sabev-coolpress\coolpress\press\static\press" />
+      <recent name="C:\Users\Valeri\Desktop\Python\Applied_Python_HS\valeri-sabev-coolpress\coolpress\press\static" />
+      <recent name="C:\Users\Valeri\Desktop\Python\Applied_Python_HS\valeri-sabev-coolpress\coolpress\press\static\press\css" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.Run Server">
+    <configuration name="Django Tests" type="PythonConfigurationType" factoryName="Python">
+      <module name="valeri-sabev-coolpress" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+        <env name="MEDIASTACK_API" value="45b0370cfdbcd0de63466177848470f1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\Users\Valeri\Desktop\Python\Applied_Python_HS\valeri-sabev-coolpress\venv\Scripts\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/coolpress" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/coolpress/manage.py" />
+      <option name="PARAMETERS" value="test press.tests.GithubManager" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Get API News" type="PythonConfigurationType" factoryName="Python">
+      <module name="valeri-sabev-coolpress" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+        <env name="MEDIASTACK_API" value="45b0370cfdbcd0de63466177848470f1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\Users\Valeri\Desktop\Python\Applied_Python_HS\valeri-sabev-coolpress\venv\Scripts\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/coolpress" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/coolpress/manage.py" />
+      <option name="PARAMETERS" value="get_api_news technology,health --limit=5" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Run Python Shell" type="PythonConfigurationType" factoryName="Python">
+      <module name="valeri-sabev-coolpress" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\Users\Valeri\Desktop\Python\Applied_Python_HS\valeri-sabev-coolpress\venv\Scripts\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/coolpress" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/coolpress/manage.py" />
+      <option name="PARAMETERS" value="shell" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Run Server" type="PythonConfigurationType" factoryName="Python">
+      <module name="valeri-sabev-coolpress" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+        <env name="MEDIASTACK_API" value="45b0370cfdbcd0de63466177848470f1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\Users\Valeri\Desktop\Python\Applied_Python_HS\valeri-sabev-coolpress\venv\Scripts\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/coolpress" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/coolpress/manage.py" />
+      <option name="PARAMETERS" value="runserver" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.Run Server" />
+      <item itemvalue="Python.Django Tests" />
+      <item itemvalue="Python.Get API News" />
+      <item itemvalue="Python.Run Python Shell" />
+    </list>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b0256eb0-7ffa-40e3-82d8-9ae52bafd34d" name="Changes" comment="" />
+      <created>1634655545028</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1634655545028</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Quick test">
+      <created>1634902901865</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1634902901865</updated>
+    </task>
+    <task id="LOCAL-00016" summary="context processors">
+      <created>1634906108595</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1634906108595</updated>
+    </task>
+    <task id="LOCAL-00017" summary="DAY 5 class work">
+      <created>1635179243411</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1635179243411</updated>
+    </task>
+    <task id="LOCAL-00018" summary="favicon :P">
+      <created>1635179790877</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1635179790877</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Fixes dynamic text">
+      <created>1635182321437</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1635182321437</updated>
+    </task>
+    <task id="LOCAL-00020" summary="Fixes dynamic text">
+      <created>1635182895464</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1635182895464</updated>
+    </task>
+    <task id="LOCAL-00021" summary="More updates views and templates">
+      <created>1635185256082</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1635185256082</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Bug fix">
+      <created>1635253843811</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1635253843812</updated>
+    </task>
+    <task id="LOCAL-00023" summary="Day 6 changes">
+      <created>1635260998386</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1635260998386</updated>
+    </task>
+    <task id="LOCAL-00024" summary="Many bug fixes">
+      <created>1635263255240</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1635263255240</updated>
+    </task>
+    <task id="LOCAL-00025" summary="Tests and more confusing things">
+      <created>1635268714117</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1635268714117</updated>
+    </task>
+    <task id="LOCAL-00026" summary="Tests are now working">
+      <created>1635272660594</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1635272660594</updated>
+    </task>
+    <task id="LOCAL-00027" summary="Tests and db backup (had issues testing)">
+      <created>1635341062436</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1635341062436</updated>
+    </task>
+    <task id="LOCAL-00028" summary="New CBVs and more frontend details">
+      <created>1635344321050</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1635344321050</updated>
+    </task>
+    <task id="LOCAL-00029" summary="navbar css">
+      <created>1635344403618</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1635344403618</updated>
+    </task>
+    <task id="LOCAL-00030" summary="Class Based Views">
+      <created>1635347195892</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1635347195892</updated>
+    </task>
+    <task id="LOCAL-00031" summary="Setting up heroku">
+      <created>1635353945820</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1635353945820</updated>
+    </task>
+    <task id="LOCAL-00032" summary="Setting up heroku procfile">
+      <created>1635354031876</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1635354031876</updated>
+    </task>
+    <task id="LOCAL-00033" summary="Heroku json data">
+      <created>1635356508459</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1635356508459</updated>
+    </task>
+    <task id="LOCAL-00034" summary="Heroku json data">
+      <created>1635356656908</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1635356656908</updated>
+    </task>
+    <task id="LOCAL-00035" summary="Heroku json data">
+      <created>1635356741319</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1635356741319</updated>
+    </task>
+    <task id="LOCAL-00036" summary="Heroku json data">
+      <created>1635357012461</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1635357012461</updated>
+    </task>
+    <task id="LOCAL-00037" summary="Heroku json data">
+      <created>1635357030331</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1635357030331</updated>
+    </task>
+    <task id="LOCAL-00038" summary="Read me fix">
+      <created>1635357482498</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1635357482498</updated>
+    </task>
+    <task id="LOCAL-00039" summary="Fixes after deployment">
+      <created>1635357743056</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1635357743056</updated>
+    </task>
+    <task id="LOCAL-00040" summary="README update">
+      <created>1635429794947</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1635429794947</updated>
+    </task>
+    <task id="LOCAL-00041" summary="README update">
+      <created>1635438656501</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1635438656501</updated>
+    </task>
+    <task id="LOCAL-00042" summary="Gravatar and more">
+      <created>1635456294600</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1635456294600</updated>
+    </task>
+    <task id="LOCAL-00043" summary="Gravatar and more">
+      <created>1635456621604</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1635456621604</updated>
+    </task>
+    <task id="LOCAL-00044" summary="Hot fix">
+      <created>1635457207060</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1635457207060</updated>
+    </task>
+    <task id="LOCAL-00045" summary="Hot fix">
+      <created>1635457423709</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1635457423709</updated>
+    </task>
+    <task id="LOCAL-00046" summary="Hot fix">
+      <created>1635457821250</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1635457821250</updated>
+    </task>
+    <task id="LOCAL-00047" summary="Hot fix">
+      <created>1635458371429</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1635458371429</updated>
+    </task>
+    <task id="LOCAL-00048" summary="Hot fix">
+      <created>1635528988383</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1635528988383</updated>
+    </task>
+    <task id="LOCAL-00049" summary="Hot fix">
+      <created>1635958693665</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1635958693665</updated>
+    </task>
+    <task id="LOCAL-00050" summary="Day 13 actual class code">
+      <created>1635966252060</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1635966252061</updated>
+    </task>
+    <task id="LOCAL-00051" summary="Day 13 actual class code">
+      <created>1635968383536</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1635968383537</updated>
+    </task>
+    <task id="LOCAL-00052" summary="More tests :))))">
+      <created>1636044945222</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1636044945222</updated>
+    </task>
+    <task id="LOCAL-00053" summary="Search and more">
+      <created>1636046291489</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1636046291489</updated>
+    </task>
+    <task id="LOCAL-00054" summary="Search bug fix">
+      <created>1636046457869</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1636046457871</updated>
+    </task>
+    <task id="LOCAL-00055" summary="media stack">
+      <created>1636047590949</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1636047590949</updated>
+    </task>
+    <task id="LOCAL-00056" summary="start of hw 10">
+      <created>1636048895405</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
+      <option name="project" value="LOCAL" />
+      <updated>1636048895405</updated>
+    </task>
+    <task id="LOCAL-00057" summary="CLI and automating post generation">
+      <created>1636051411362</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1636051411362</updated>
+    </task>
+    <task id="LOCAL-00058" summary="CLI and automating post generation">
+      <created>1636051963111</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1636051963111</updated>
+    </task>
+    <task id="LOCAL-00059" summary="README">
+      <created>1636131787409</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1636131787409</updated>
+    </task>
+    <task id="LOCAL-00060" summary="HW fix">
+      <created>1636136017062</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1636136017062</updated>
+    </task>
+    <task id="LOCAL-00061" summary="HW fix">
+      <created>1636136745038</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1636136745038</updated>
+    </task>
+    <task id="LOCAL-00062" summary="HW fix">
+      <created>1636137314018</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1636137314018</updated>
+    </task>
+    <task id="LOCAL-00063" summary="HW fix">
+      <created>1636137921536</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1636137921537</updated>
+    </task>
+    <option name="localTasksCounter" value="64" />
+    <servers />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ID_ORDER">
+      <list>
+        <option value="Default.Root" />
+        <option value="Default.Author" />
+        <option value="Default.Date" />
+        <option value="Default.Subject" />
+        <option value="Space.CommitStatus" />
+      </list>
+    </option>
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="origin/myapp" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="Day 6 changes" />
+    <MESSAGE value="Many bug fixes" />
+    <MESSAGE value="Tests and more confusing things" />
+    <MESSAGE value="Tests are now working" />
+    <MESSAGE value="Tests and db backup (had issues testing)" />
+    <MESSAGE value="New CBVs and more frontend details" />
+    <MESSAGE value="navbar css" />
+    <MESSAGE value="Class Based Views" />
+    <MESSAGE value="Setting up heroku" />
+    <MESSAGE value="Setting up heroku procfile" />
+    <MESSAGE value="Heroku json data" />
+    <MESSAGE value="Read me fix" />
+    <MESSAGE value="Fixes after deployment" />
+    <MESSAGE value="README update" />
+    <MESSAGE value="Gravatar and more" />
+    <MESSAGE value="Hot fix" />
+    <MESSAGE value="Day 13 actual class code" />
+    <MESSAGE value="More tests :))))" />
+    <MESSAGE value="Search and more" />
+    <MESSAGE value="Search bug fix" />
+    <MESSAGE value="media stack" />
+    <MESSAGE value="start of hw 10" />
+    <MESSAGE value="CLI and automating post generation" />
+    <MESSAGE value="README" />
+    <MESSAGE value="HW fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="HW fix" />
+  </component>
+</project>

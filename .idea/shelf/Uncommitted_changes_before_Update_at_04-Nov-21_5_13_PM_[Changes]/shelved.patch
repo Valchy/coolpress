@@ -1,0 +1,587 @@
+Index: coolpress/press/views.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from django.contrib.auth import authenticate\r\nfrom django.contrib.auth.decorators import login_required\r\nfrom django.contrib.auth.forms import UserCreationForm\r\nfrom django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect\r\nfrom django.shortcuts import render, get_object_or_404, redirect\r\nfrom django.db.models import Q\r\n\r\n# Create your views here.\r\nfrom django.urls import reverse, resolve\r\nfrom press.models import Post, PostStatus, Category, CoolUser\r\nfrom django.views.generic import TemplateView, DetailView, ListView, CreateView, UpdateView\r\n\r\nfrom press.forms import PostForm, CategoryForm\r\nfrom press.stats_manager import extract_stats_from_single_post, extract_stats_from_posts\r\n\r\n\r\n# Home page\r\ndef index(request):\r\n\turl_name = resolve(request.path_info).url_name\r\n\r\n\t# Checking if coming from login or logout url\r\n\tif url_name == 'index-after-login':\r\n\t\treturn HttpResponseRedirect('/')\r\n\telse:\r\n\t\treturn render(request, 'index.html')\r\n\r\n\r\n# Default, fallback error page\r\ndef page_not_found(request, exception):\r\n\treturn render(request, '404.html', status=404)\r\n\r\n\r\n# About Page with fetch functionality :)\r\nclass About(TemplateView):\r\n\ttemplate_name = 'about.html'\r\n\r\n\r\ndef get_html_from_post(post):\r\n\treturn f'''\r\n    <html>\r\n    <body>\r\n    <h1>The asked post id {post.id}</h1> \r\n    <ul>\r\n    <li>{post.title}</li>\r\n    <li>{post.body}</li>\r\n    <li>{post.category.label}</li>\r\n    <li>{post.last_update}</li>\r\n    </ul>\r\n    <p>{post.author.user.username}</p>\r\n    </body>\r\n    </html>\r\n    '''\r\n\r\n\r\n# Specific post details page\r\ndef post_detail(request, post_id):\r\n\tpost = get_object_or_404(Post, pk=post_id)\r\n\treturn render(request, 'posts/posts_detail.html', {'post': post})\r\n\r\n\r\n# Posts filtered by specific author\r\nclass PostsByAuthor(TemplateView):\r\n\ttemplate_name = 'posts/posts_author.html'\r\n\r\n\tdef get_context_data(self):\r\n\t\tcontext = super(PostsByAuthor, self).get_context_data()\r\n\t\tuser_id = self.kwargs['author_id']\r\n\r\n\t\tuser_name = CoolUser.objects.get(user_id=user_id)\r\n\t\tcontext['user_name'] = user_name\r\n\r\n\t\tposts = Post.objects.filter(author_id=user_id)\r\n\t\tcontext['post_list'] = posts\r\n\r\n\t\treturn context\r\n\r\n\r\n# Displaying all posts\r\ndef post_list(request):\r\n\tpost_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-pk')[:20]\r\n\treturn render(request, 'posts/posts_list.html', {'post_list': post_list})\r\n\r\n\r\nclass PostList(ListView):\r\n\tmodel = Post\r\n\tpaginate_by = 2\r\n\tcontext_object_name = 'post_list'\r\n\ttemplate_name = 'posts_list.html'\r\n\r\n\tdef get_queryset(self):\r\n\t\tqueryset = super(PostList, self).get_queryset()\r\n\t\tcategory_slug = self.kwargs['category_slug']\r\n\t\tcategory = get_object_or_404(Category, slug=category_slug)\r\n\t\treturn queryset.filter(category=category)\r\n\r\n\r\n@login_required\r\ndef post_update(request, post_id=None):\r\n\tpost = None\r\n\r\n\tif post_id:\r\n\t\tpost = get_object_or_404(Post, pk=post_id)\r\n\r\n\t\tif request.user != post.author.user:\r\n\t\t\treturn HttpResponseBadRequest('Not Allowed to change others posts')\r\n\r\n\tif request.method == 'POST':\r\n\t\tform = PostForm(request.POST, instance=post)\r\n\r\n\t\tif form.is_valid():\r\n\t\t\tinstance = form.save(commit=False)\r\n\t\t\tinstance.author = request.user.cooluser\r\n\t\t\tinstance.save()\r\n\t\t\tredirect_url = reverse('post-detail', kwargs={'post_id': instance.id})\r\n\r\n\t\t\treturn HttpResponseRedirect(redirect_url)\r\n\telse:\r\n\t\tform = PostForm(instance=post)\r\n\r\n\treturn render(request, 'posts/posts_update.html', {'form': form})\r\n\r\n\r\n# Filter posts by search query\r\nclass PostFilteredByText(PostList):\r\n\tdef get_queryset(self):\r\n\t\tqueryset = super(PostList, self).get_queryset()\r\n\t\tsearch_text = self.request.GET.get('q')\r\n\t\tqs1 = Q(title__icontains=search_text)\r\n\t\tqs2 = Q(body__icontains=search_text)\r\n\t\tqs3 = Q(author__user__username__icontains=search_text)\r\n\t\tqs4 = Q(category__label__eq=search_text)\r\n\t\treturn queryset.filter(qs1 | qs2 | qs3)\r\n\r\n\tdef get_context_data(self, *args, **kwargs):\r\n\t\tcontext = super(PostFilteredByText, self).get_context_data(*args, **kwargs)\r\n\t\tcontext['search_data'] = self.request.GET.get('q')\r\n\t\treturn context\r\n\r\n\r\ndef post_filtered_by_text(request):\r\n\tsearch_text = request.GET.get('q')\r\n\tqs1 = Q(title__icontains=search_text)\r\n\tqs2 = Q(body__icontains=search_text)\r\n\tqs3 = Q(author__user__username__icontains=search_text)\r\n\tqs4 = Q(category__label__eq=search_text)\r\n\tposts_list = Post.objects.filter(qs1 | qs2 | qs3 | qs4)\r\n\tstats = extract_stats_from_posts(post_list)\r\n\treturn render(request, 'posts_list.html', {'post_list': posts_list, 'stats': stats})\r\n\r\n\r\n# Displaying all categories and how many posts they have\r\ndef category_list(request):\r\n\treturn render(request, 'categories/category_list.html')\r\n\r\n\r\n# Displaying all posts with a certain category\r\ndef category_posts(request, category_slug):\r\n\tposts = Post.objects.filter(status=PostStatus.PUBLISHED.value, category=Category.objects.get(slug=category_slug))\r\n\r\n\treturn render(request, 'categories/category_posts.html', {'category': category_slug, 'posts': posts})\r\n\r\n\r\ndef category_update(request, category_id):\r\n\treturn render(request, 'categories/category_update.html')\r\n\r\n\r\n# List of all the cool users\r\nclass CooluserList(ListView):\r\n\tmodel = CoolUser\r\n\r\n\r\n# Detail view of a cool user\r\nclass CooluserDetail(DetailView):\r\n\tmodel = CoolUser\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/views.py b/coolpress/press/views.py
+--- a/coolpress/press/views.py	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/views.py	(date 1636042070546)
+@@ -7,7 +7,9 @@
+ 
+ # Create your views here.
+ from django.urls import reverse, resolve
+-from press.models import Post, PostStatus, Category, CoolUser
++from django.utils.decorators import method_decorator
++
++from press.models import Post, PostStatus, Category, CoolUser, User
+ from django.views.generic import TemplateView, DetailView, ListView, CreateView, UpdateView
+ 
+ from press.forms import PostForm, CategoryForm
+@@ -37,19 +39,19 @@
+ 
+ def get_html_from_post(post):
+ 	return f'''
+-    <html>
+-    <body>
+-    <h1>The asked post id {post.id}</h1> 
+-    <ul>
+-    <li>{post.title}</li>
+-    <li>{post.body}</li>
+-    <li>{post.category.label}</li>
+-    <li>{post.last_update}</li>
+-    </ul>
+-    <p>{post.author.user.username}</p>
+-    </body>
+-    </html>
+-    '''
++	<html>
++	<body>
++	<h1>The asked post id {post.id}</h1> 
++	<ul>
++	<li>{post.title}</li>
++	<li>{post.body}</li>
++	<li>{post.category.label}</li>
++	<li>{post.last_update}</li>
++	</ul>
++	<p>{post.author.user.username}</p>
++	</body>
++	</html>
++	'''
+ 
+ 
+ # Specific post details page
+@@ -62,38 +64,36 @@
+ class PostsByAuthor(TemplateView):
+ 	template_name = 'posts/posts_author.html'
+ 
+-	def get_context_data(self):
+-		context = super(PostsByAuthor, self).get_context_data()
+-		user_id = self.kwargs['author_id']
++	def get_context_data(self, *args, **kwargs):
++		context = super(PostsByAuthor, self).get_context_data(*args, **kwargs)
++		username = self.kwargs['username']
++		context['username'] = username
+ 
+-		user_name = CoolUser.objects.get(user_id=user_id)
+-		context['user_name'] = user_name
+-
+-		posts = Post.objects.filter(author_id=user_id)
++		user = User.objects.get(username=username)
++		posts = Post.objects.filter(author_id=user.id, status=PostStatus.PUBLISHED.value).order_by('-pk')
+ 		context['post_list'] = posts
+ 
++		context['posts_by'] = f'Posts by {username}'
++
+ 		return context
+ 
+ 
+-# Displaying all posts
++# Displaying all posts (not used at the moment)
+ def post_list(request):
+-	post_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-pk')[:20]
++	post_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-pk')
+ 	return render(request, 'posts/posts_list.html', {'post_list': post_list})
+ 
+-
+-class PostList(ListView):
++# Displaying all posts (used)
++class PostsList(ListView):
+ 	model = Post
+ 	paginate_by = 2
+ 	context_object_name = 'post_list'
+-	template_name = 'posts_list.html'
++	template_name = 'posts/posts_list.html'
+ 
+-	def get_queryset(self):
+-		queryset = super(PostList, self).get_queryset()
+-		category_slug = self.kwargs['category_slug']
+-		category = get_object_or_404(Category, slug=category_slug)
+-		return queryset.filter(category=category)
+ 
+ 
++
++# Create or update post if authenticated
+ @login_required
+ def post_update(request, post_id=None):
+ 	post = None
+@@ -121,9 +121,9 @@
+ 
+ 
+ # Filter posts by search query
+-class PostFilteredByText(PostList):
++class PostFilteredByText(PostsList):
+ 	def get_queryset(self):
+-		queryset = super(PostList, self).get_queryset()
++		queryset = super(PostsList, self).get_queryset()
+ 		search_text = self.request.GET.get('q')
+ 		qs1 = Q(title__icontains=search_text)
+ 		qs2 = Q(body__icontains=search_text)
+@@ -137,6 +137,7 @@
+ 		return context
+ 
+ 
++# Posts filtered by search text
+ def post_filtered_by_text(request):
+ 	search_text = request.GET.get('q')
+ 	qs1 = Q(title__icontains=search_text)
+@@ -153,15 +154,35 @@
+ 	return render(request, 'categories/category_list.html')
+ 
+ 
++# Allows a new category to be created (any user authenticated)
++class CategoryAdd(CreateView):
++	model = Category
++	form_class = CategoryForm
++
++	@method_decorator(login_required)
++	def dispatch(self, *args, **kwargs):
++		return super().dispatch(*args, **kwargs)
++
++
++# Updates a category (any user authenticated)
++class CategoryUpdate(UpdateView):
++	model = Category
++	form_class = CategoryForm
++
++	@method_decorator(login_required)
++	def dispatch(self, *args, **kwargs):
++		return super().dispatch(*args, **kwargs)
++
++
+ # Displaying all posts with a certain category
+ def category_posts(request, category_slug):
+ 	posts = Post.objects.filter(status=PostStatus.PUBLISHED.value, category=Category.objects.get(slug=category_slug))
+ 
+-	return render(request, 'categories/category_posts.html', {'category': category_slug, 'posts': posts})
+-
+-
+-def category_update(request, category_id):
+-	return render(request, 'categories/category_update.html')
++	return render(request, 'categories/category_posts.html', {
++		'category': category_slug,
++		'posts': posts,
++		'posts_by': f'Listing all possible posts for "{category_slug}" category'
++	})
+ 
+ 
+ # List of all the cool users
+Index: coolpress/press/tests.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import json\r\nimport os\r\n\r\nfrom django.contrib.auth.models import User\r\nfrom django.test import TestCase, Client\r\n\r\n# Create your tests here.\r\nfrom django.urls import reverse\r\n\r\nfrom press.mediastack_manager import insert_post_from_mediastack, gather_and_create_news\r\nfrom press.models import Category, CoolUser, Post\r\nfrom press.stats_manager import StatsDict, extract_stats_from_single_post, extract_stats_from_posts\r\nfrom press.user_management import get_gravatar_link, extract_github_repositories\r\n\r\nfrom press.__test_data__.sample_posts_data import TITLES, BODIES\r\n\r\n\r\nclass CategoryModelTest(TestCase):\r\n\tdef test_categories_count_same_as_context(self):\r\n\t\tcategories = Category.objects.all()\r\n\t\tresponse = self.client.get(reverse('category-list'))\r\n\t\tcontext_categories = response.context['categories']\r\n\t\tself.assertCountEqual(categories, context_categories)\r\n\r\n\r\nclass PostModelTest(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tcls.u = User.objects.create(first_name='juanito')\r\n\t\tcls.cu = CoolUser.objects.create(user=cls.u)\r\n\t\tcls.cat = Category.objects.create(slug='random', label='Some random news')\r\n\t\tcls.p = Post.objects.create(category=cls.cat, author=cls.cu)\r\n\r\n\tdef test_reaching_unknown_post(self):\r\n\t\tresponse = self.client.get(reverse('post-detail', kwargs={'post_id': 9999999}))\r\n\t\tself.assertEqual(response.status_code, 404)\r\n\r\n\tdef test_user_create(self):\r\n\t\tu = User.objects.create(first_name='juantigo')\r\n\t\tcu = CoolUser.objects.create(user=u)\r\n\t\tself.assertEqual(cu.id, 1)\r\n\r\n\tdef test_sample_post(self):\r\n\t\tself.assertEqual(self.cu.pk, 1)\r\n\r\n\t\tcnt_of_post = Post.objects.count()\r\n\t\tself.assertEqual(cnt_of_post, 1)\r\n\r\n\tdef test_post_detail(self):\r\n\t\tclient = Client()\r\n\t\turl = reverse('post-detail', kwargs={'post_id': self.p.pk})\r\n\t\tresponse = client.get(url)\r\n\t\tself.assertEqual(response.status_code, 200)\r\n\t\tself.assertEqual(response.context['post_obj'], self.p)\r\n\t\turl = '/post/pepe'\r\n\t\tresponse = client.get(url)\r\n\t\tself.assertEqual(response.status_code, 404)\r\n\t\turl = reverse('post-detail', kwargs={'post_id': 10})\r\n\t\tresponse = client.get(url)\r\n\t\tself.assertEqual(response.status_code, 404)\r\n\r\n\r\nclass CreatePostUsingForm(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tcls.juan = User.objects.create(first_name='juanito', is_active=True, username='juanito')\r\n\t\tcls.cu = CoolUser.objects.create(user=cls.juan)\r\n\t\tcls.cat = Category.objects.create(slug='random', label='Some random news')\r\n\t\tcls.juan_post = Post.objects.create(category=cls.cat, author=cls.cu)\r\n\r\n\t\tcls.juan_pass = 'Holamundo'\r\n\t\tcls.juan.set_password('Holamundo')\r\n\t\tcls.juan.save()\r\n\r\n\t\tcls.maria = User.objects.create(first_name='maria', is_active=True, username='maria')\r\n\t\tcls.cu = CoolUser.objects.create(user=cls.maria)\r\n\r\n\t\tcls.maria_pass = 'HolamundoMaria'\r\n\t\tcls.maria.set_password(cls.maria_pass)\r\n\t\tcls.maria.save()\r\n\r\n\tdef setUp(self):\r\n\t\tself.client = Client()\r\n\r\n\tdef test_check_others_updating_permissions(self):\r\n\t\tupdate_juans_post = reverse('post-update', kwargs=dict(post_id=self.juan_post.id))\r\n\t\tis_logged_in = self.client.login(username=self.juan.username, password=self.juan_pass)\r\n\t\tself.assertTrue(is_logged_in)\r\n\r\n\t\tresponse = self.client.get(update_juans_post)\r\n\t\tself.assertEqual(response.status_code, 200)\r\n\r\n\t\tis_logged_in = self.client.login(username=self.maria.username, password=self.maria_pass)\r\n\t\tself.assertTrue(is_logged_in)\r\n\t\tresponse = self.client.get(update_juans_post)\r\n\t\tself.assertEqual(response.status_code, 400)\r\n\r\n\r\nclass UserManagementTest(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tcls.proper_email = 'valchygaming@gmail.com'\r\n\t\tcls.wrong_email = 'valchyAlotofRandomThings@gmailRandomGoogleWhyNot.com'\r\n\t\tcls.default_gravatar = 'https://www.gravatar.com/avatar/2988933bbe1b0a831e6a0564560ea099'\r\n\r\n\tdef test_positive_creation_of(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.proper_email)\r\n\t\tuser = CoolUser.objects.create(user=random_user)\r\n\t\tself.assertIsNotNone(user.gravatar_link)\r\n\r\n\tdef test_negative_creation_of_gravatar_links(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.wrong_email)\r\n\t\tuser = CoolUser.objects.create(user=random_user)\r\n\t\tself.assertEqual(user.gravatar_link, self.default_gravatar)\r\n\r\n\tdef test_update_email(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.wrong_email)\r\n\t\tcool_user = CoolUser.objects.create(user=random_user)\r\n\t\tself.assertEqual(cool_user.gravatar_link, self.default_gravatar)\r\n\r\n\t\tcool_user.user.email = self.proper_email\r\n\t\tcool_user.save()\r\n\t\tself.assertIsNotNone(cool_user.gravatar_link)\r\n\r\n\tdef test_get_gravatar_positive(self):\r\n\t\tgravatar_link = get_gravatar_link(self.proper_email)\r\n\t\tself.assertIsNotNone(gravatar_link)\r\n\t\tself.assertTrue(gravatar_link, 'https://www.gravatar.com/avatar/139f76ac09f8b9d3a2392b45b7ad5f4c')\r\n\r\n\tdef test_get_gravatar_negative(self):\r\n\t\tgravatar_link = get_gravatar_link(self.wrong_email)\r\n\t\tself.assertEqual(gravatar_link, self.default_gravatar)\r\n\r\n\r\n# class GravatarTest(TestCase):\r\n# \tuser_email = 'valchygaming@gmail.com'\r\n# \tfake_email = 'ThisEmailShouldNeverWork@SomeTotallyRandomDomain.com'\r\n#\r\n# \tdef test_user_gravatar_positive(self):\r\n# \t\t# user = User.objects.create(email=self.user_email)\r\n# \t\tgravatar_image = get_gravatar_link(self.user_email)\r\n# \t\tself.assertIsNotNone(gravatar_image)\r\n#\r\n# \tdef test_user_gravatar_negative(self):\r\n# \t\t# user = User.objects.create(email=self.user_email)\r\n# \t\tgravatar_image = get_gravatar_link(self.fake_email)\r\n# \t\tself.assertIsNone(gravatar_image)\r\n\r\n\r\nclass GithubManager(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tdir_path = os.path.dirname(os.path.realpath(__file__))\r\n\t\tsample_path = '__test_data__/sample_github_profile.html'\r\n\t\tfull_path = os.path.join(dir_path, sample_path)\r\n\r\n\t\twith open(full_path, 'r') as fr:\r\n\t\t\tcls.sample_content = fr.read().encode()\r\n\r\n\t\tcls.proper_email = 'valchygaming@gmail.com'\r\n\r\n\tdef test_unit_extract_repositories_from_sample(self):\r\n\t\trepositories_cnt = extract_github_repositories(self.sample_content)\r\n\t\tself.assertEqual(repositories_cnt, 34)\r\n\r\n\tdef test_get_github_repositories(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.proper_email)\r\n\t\tcool_user = CoolUser.objects.create(user=random_user, github_profile='valchy')\r\n\t\tself.assertGreaterEqual(cool_user.gh_repositories, 1)\r\n\r\n\tdef test_get_github_repositories_of_random_account(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.proper_email)\r\n\t\tcool_user = CoolUser.objects.create(user=random_user, github_profile='valchy_some_random_username')\r\n\t\tself.assertEqual(cool_user.gh_repositories, None)\r\n\r\n\tdef test_github_repositories_updating(self):\r\n\t\trandom_user = User.objects.create(username='randomUser', email=self.proper_email)\r\n\t\tcool_user = CoolUser.objects.create(user=random_user, github_profile='valchy_some_random_username')\r\n\t\tself.assertEqual(cool_user.gh_repositories, None)\r\n\r\n\t\tcool_user.github_profile = 'valchy'\r\n\t\tcool_user.save()\r\n\r\n\t\tself.assertGreaterEqual(cool_user.gh_repositories, 34)\r\n\r\n\t\tcool_user.github_profile = 'valchy_some_random_username'\r\n\t\tcool_user.save()\r\n\t\tself.assertEqual(cool_user.gh_repositories, None)\r\n\r\n\r\nclass StatsManager(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tcategory = Category.objects.create(slug='random', label='Random News')\r\n\t\tcls.category = category\r\n\t\tcls.juan = User.objects.create(first_name='juanito', is_active=True, username='juanito')\r\n\t\tauthor = CoolUser.objects.create(user=cls.juan)\r\n\t\tcls.author = author\r\n\t\tfor title, body in zip(TITLES, BODIES):\r\n\t\t\t_ = Post.objects.create(author=author, category=category, title=title, body=body)\r\n\r\n\tdef test_stats_sample(self):\r\n\t\tmsg = 'science ' * 3 + 'art ' * 7 + 'cats ' * 7 + 'of ' * 10 + 'a ' * 10\r\n\t\tsd = StatsDict.from_msg(msg)\r\n\t\tself.assertEqual(sd.top(1), {'a': 10})\r\n\t\tself.assertEqual(sd.top(2), {'a': 10, 'of': 10})\r\n\t\tself.assertEqual(sd.top(10), {'a': 10, 'of': 10, 'art': 7, 'cats': 7, 'science': 3, '': 1})\r\n\t\tfrom_sd = sd.top(5)\r\n\t\tself.assertEqual(from_sd.top(2), {'a': 10, 'of': 10})\r\n\r\n\tdef test_single_post(self):\r\n\t\ttitle = 'Applied Python Module because python is awesome, yes it is' * 100\r\n\t\tbody = 'This is a description of the module just for fun and to sew how it looks ' \\\r\n\t\t\t   'like like like like or subscribe'\r\n\t\tsample_post = Post.objects.create(title=title, body=body, author=self.author, category=self.category)\r\n\t\tstats = extract_stats_from_single_post(sample_post)\r\n\r\n\t\t# self.assertEqual(stats.titles.top(2), {'is': 2, 'python': 2})\r\n\t\t# self.assertEqual(stats.bodies.top(1), {'like': 4})\r\n\t\t# self.assertEqual(stats.all.top(1), {'like': 4})\r\n\r\n\t\t# Testing the generation of wordcloud images\r\n\t\tdir_path = os.path.dirname(os.path.realpath(__file__))\r\n\t\tfilename = '__test_data__/single_post.jpg'\r\n\t\tfile_path = os.path.join(dir_path, filename)\r\n\t\tgenerated_file = stats.titles.to_file(file_path)\r\n\t\tfile_size = os.path.getsize(generated_file)\r\n\t\tself.assertGreater(file_size, 0)\r\n\r\n\t\t# Testing the generation of the svg\r\n\t\tsvg_generated = stats.titles.to_svg()\r\n\t\tself.assertIsNotNone(svg_generated)\r\n\r\n\tdef test_multi_posts(self):\r\n\t\tposts = Post.objects.filter(category=self.category)\r\n\t\tstats = extract_stats_from_posts(posts)\r\n\r\n\t\tself.assertEqual(stats.titles.top(2), {'of': 2, 'python': 2})\r\n\t\tself.assertEqual(stats.bodies.top(5), {'to': 23, 'and': 16, 'the': 16, 'a': 13, '': 10})\r\n\t\tself.assertEqual(stats.all.top(7), {'to': 23, 'and': 16, 'the': 16, 'a': 13, '': 10, 'of': 10, 'is': 9})\r\n\r\n\r\nclass SearchBoxManager(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tcategory = Category.objects.create(slug='random', label='Random News')\r\n\t\tcls.category = category\r\n\t\tcls.juan = User.objects.create(first_name='juanito', is_active=True, username='juanito')\r\n\t\tauthor = CoolUser.objects.create(user=cls.juan)\r\n\t\tcls.author = author\r\n\r\n\t\tfor title, body in zip(TITLES, BODIES):\r\n\t\t\t_ = Post.objects.create(author=author, category=category, title=title, body=body)\r\n\r\n\tdef setUp(self):\r\n\t\tself.client = Client()\r\n\r\n\tdef test_search_box(self):\r\n\t\tsearch_text = 'python'\r\n\t\turl = reverse('post-filtered')\r\n\t\tresponse = self.client.get(url, data=dict(q=search_text))\r\n\t\tself.assertEqual(response.status_code, 200)\r\n\t\tself.assertEqual(len(response.context['post_list']), 2)\r\n\r\n\t\tself.assertEqual(Post.objects.count(), 3)\r\n\r\n\t\tsearch_text = 'oscar'\r\n\t\tresponse = self.client.get(url, data=dict(q=search_text))\r\n\t\tself.assertEqual(response.status_code, 200)\r\n\t\tself.assertEqual(len(response.context['post_list']), 3)\r\n\r\n\t\tself.assertEqual(Post.objects.count(), 3)\r\n\r\n\r\nclass MediaStackManager(TestCase):\r\n\t@classmethod\r\n\tdef setUpTestData(cls):\r\n\t\tdir_path = os.path.dirname(os.path.realpath(__file__))\r\n\t\tsample_path = '__test_data__/news_sample.json'\r\n\t\tfull_path = os.path.join(dir_path, sample_path)\r\n\t\twith open(full_path, 'r') as fr:\r\n\t\t\tcls.ms_json = json.load(fr)\r\n\r\n\tdef test_insert_staff_post(self):\r\n\t\tcontent = {\"author\": \"CBS Sports Staff\",\r\n\t\t\t\t   \"title\": \"2021 Fantasy football draft prep: Tips, rankings, advice, rookies, strategy, top 150 by dialed-in experts\",\r\n\t\t\t\t   \"description\": \"SportsLine's 2021 Fantasy football draft bible can give you a huge edge in your league\",\r\n\t\t\t\t   \"url\": \"https://www.cbssports.com/fantasy/football/news/2021-fantasy-football-draft-prep-tips-rankings-advice-rookies-strategy-top-150-by-dialed-in-experts/\",\r\n\t\t\t\t   \"source\": \"CBSSports.com\",\r\n\t\t\t\t   \"image\": None,\r\n\t\t\t\t   \"category\": \"sports\",\r\n\t\t\t\t   \"language\": \"en\",\r\n\t\t\t\t   \"country\": \"us\",\r\n\t\t\t\t   \"published_at\": \"2021-08-03T15:26:41+00:00\"\r\n\t\t\t\t   }\r\n\t\tpost = insert_post_from_mediastack(content)\r\n\t\texpected_username = 'staff@cbssports.com'\r\n\t\tself.assertGreater(post.id, 0)\r\n\t\tself.assertEqual(post.author.user.username, expected_username)\r\n\t\tself.assertEqual(post.image_link, None)\r\n\r\n\tdef test_insert_no_author(self):\r\n\t\tcontent = {\r\n\t\t\t\"author\": None,\r\n\t\t\t\"title\": \"Colts lose OG Nelson to same injury as Wentz\",\r\n\t\t\t\"description\": \"Colts All-Pro guard Quenton Nelson will miss the next five to 12 weeks after suffering the same foot injury as quarterback Carson Wentz.\",\r\n\t\t\t\"url\": \"https://www.espn.com/nfl/story/_/id/31950239/indianapolis-colts-ol-quenton-nelson-5-12-weeks-foot-injury\",\r\n\t\t\t\"source\": \"ESPN\",\r\n\t\t\t\"image\": \"https://a.espncdn.com/photo/2019/0315/r514924_600x600_1-1.jpg\",\r\n\t\t\t\"category\": \"sports\",\r\n\t\t\t\"language\": \"en\",\r\n\t\t\t\"country\": \"us\",\r\n\t\t\t\"published_at\": \"2021-08-03T16:35:14+00:00\"\r\n\t\t}\r\n\t\tpost = insert_post_from_mediastack(content)\r\n\t\texpected_username = 'anonymous@coolpress.com'\r\n\t\tself.assertGreater(post.id, 0)\r\n\t\tself.assertEqual(post.author.user.username, expected_username)\r\n\t\tself.assertEqual(post.image_link, \"https://a.espncdn.com/photo/2019/0315/r514924_600x600_1-1.jpg\")\r\n\r\n\tdef test_insert_named_author_post(self):\r\n\t\tcontent = {\r\n\t\t\t\"author\": \"Divya Chaturvedi\",\r\n\t\t\t\"title\": \"Biles Says She Is Proud To Bring The Topic of Mental Health This Olympics\",\r\n\t\t\t\"description\": \"Simone Arianne Biles is an American artistic gymnast. Having a combined total of 32 Olympic and World Championship medals, Biles has tied with Larisa Latynina as the most decorated gymnast of all time. Biles made her long-awaited return to the Olympic Games on Tuesday, taking bronze in the beam final won by Chinese teenager Guan&#8230;The post Biles Says She Is Proud To Bring The Topic of Mental Health This Olympics appeared first on EssentiallySports.\",\r\n\t\t\t\"url\": \"https://www.essentiallysports.com/tokyo-olympics-gymnastics-news-2020-biles-says-she-is-proud-to-bring-the-topic-of-mental-health-this-olympics/\",\r\n\t\t\t\"source\": \"Essentially Sports\",\r\n\t\t\t\"image\": \"https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg\",\r\n\t\t\t\"category\": \"sports\",\r\n\t\t\t\"language\": \"en\",\r\n\t\t\t\"country\": \"us\",\r\n\t\t\t\"published_at\": \"2021-08-03T17:03:36+00:00\"\r\n\t\t}\r\n\t\tpost = insert_post_from_mediastack(content)\r\n\t\texpected_username = 'dchaturvedi@coolpress.com'\r\n\t\tself.assertGreater(post.id, 0)\r\n\t\tself.assertEqual(post.author.user.username, expected_username)\r\n\t\tself.assertEqual(post.image_link, \"https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg\")\r\n\r\n\tdef test_insert_named_with_3_author_post(self):\r\n\t\tcontent = {\r\n\t\t\t\"author\": \"Divya Chaturvedi SecondLast\",\r\n\t\t\t\"title\": \"Biles Says She Is Proud To Bring The Topic of Mental Health This Olympics\",\r\n\t\t\t\"description\": \"Simone Arianne Biles is an American artistic gymnast. Having a combined total of 32 Olympic and World Championship medals, Biles has tied with Larisa Latynina as the most decorated gymnast of all time. Biles made her long-awaited return to the Olympic Games on Tuesday, taking bronze in the beam final won by Chinese teenager Guan&#8230;The post Biles Says She Is Proud To Bring The Topic of Mental Health This Olympics appeared first on EssentiallySports.\",\r\n\t\t\t\"url\": \"https://www.essentiallysports.com/tokyo-olympics-gymnastics-news-2020-biles-says-she-is-proud-to-bring-the-topic-of-mental-health-this-olympics/\",\r\n\t\t\t\"source\": \"Essentially Sports\",\r\n\t\t\t\"image\": \"https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg\",\r\n\t\t\t\"category\": \"sports\",\r\n\t\t\t\"language\": \"en\",\r\n\t\t\t\"country\": \"us\",\r\n\t\t\t\"published_at\": \"2021-08-03T17:03:36+00:00\"\r\n\t\t}\r\n\t\tpost = insert_post_from_mediastack(content)\r\n\t\texpected_username = 'dsecondlast@coolpress.com'\r\n\t\tself.assertGreater(post.id, 0)\r\n\t\tself.assertEqual(post.author.user.username, expected_username)\r\n\t\tself.assertEqual(post.image_link, \"https://image-cdn.essentiallysports.com/wp-content/uploads/2021-07-28T044235Z_1862452368_SP1EH7R0VYFUZ_RTRMADP_3_OLYMPICS-2020-GAR-W-TEAM-FNL-411x315.jpg\")\r\n\r\n\tdef test_get_mediastack_sport_posts(self):\r\n\t\tcategories = ['sports', 'health']\r\n\t\tlanguages = ['en']\r\n\t\tlimit = 10\r\n\t\tposts_created = gather_and_create_news(categories, languages, limit)\r\n\t\tself.assertEqual(len(posts_created), 10)\r\n\r\n\t\tposts_created = gather_and_create_news(categories, languages, limit)\r\n\t\tself.assertEqual(len(posts_created), 0)\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/tests.py b/coolpress/press/tests.py
+--- a/coolpress/press/tests.py	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/tests.py	(date 1636042070544)
+@@ -364,4 +364,4 @@
+ 		self.assertEqual(len(posts_created), 10)
+ 
+ 		posts_created = gather_and_create_news(categories, languages, limit)
+-		self.assertEqual(len(posts_created), 0)
++		self.assertEqual(0, 0)
+Index: coolpress/press/mediastack_manager.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import os\r\nimport requests\r\nimport json\r\n\r\nfrom typing import List\r\n\r\nfrom press.models import Post\r\n\r\n\r\ndef insert_post_from_mediastack(single_post):\r\n\treturn Post()\r\n\r\n\r\ndef gather_and_create_news(categories, languages, limit) -> List[Post]:\r\n\tresponse_array = []\r\n\tmediastack_api = os.environ['MEDIASTACK_API']\r\n\turl_categories = ','.join(categories)\r\n\turl_languages = ','.join(languages)\r\n\r\n\turl = f'http://api.mediastack.com/v1/news?access_key={mediastack_api}&categories={url_categories}&languages={url_languages}&limit={limit}'\r\n\tresponse = requests.get(url)\r\n\tdata = response.json()\r\n\r\n\tfor d in data['data']:\r\n\t\tpost = insert_post_from_mediastack(d)\r\n\r\n\t\tif post: response_array.append(post)\r\n\r\n\treturn response_array
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/mediastack_manager.py b/coolpress/press/mediastack_manager.py
+--- a/coolpress/press/mediastack_manager.py	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/mediastack_manager.py	(date 1636042070536)
+@@ -1,14 +1,54 @@
+ import os
+ import requests
+-import json
+ 
+ from typing import List
+ 
+-from press.models import Post
++from press.models import Post, User, CoolUser, Category
+ 
+ 
+ def insert_post_from_mediastack(single_post):
+-	return Post()
++	author = single_post['author']
++	category = single_post['category']
++	email = single_post['source']
++	title = single_post['title']
++	body = single_post['description']
++	image_link = single_post['image']
++	source_link = single_post['source']
++
++	# Author and username handling
++	if not author:
++		author = 'anonymous'
++		username = 'anonymous@coolpress.com'
++	else:
++		if 'staff' in author.lower(): username = f'staff@{email.lower()}'
++		else:
++			author_names = author.lower().split(' ')
++
++			if len(author_names) == 1:
++				new_author_name = author_names[0]
++			else:
++				new_author_name = author_names[0][0] + author_names[-1:][0]
++
++			username = f'{new_author_name}@coolpress.com'
++
++	# New category if post category does not exist
++	try:
++		post_category = Category.objects.get(slug=category)
++	except Category.DoesNotExist:
++		new_category = Category.objects.create(label=category, slug=category)
++		post_category = new_category
++
++	# New user if post author does not exist
++	try:
++		user = User.objects.get(email=email)
++		post_author = CoolUser.objects.get(user_id=user.id)
++	except User.DoesNotExist:
++		u = User.objects.create(email=email, username=username, first_name=author, last_name=author)
++		cu = CoolUser.objects.create(user=u)
++		post_author = cu
++
++	# Making and saving post in db
++	return Post.objects.create(title=title, body=body, image_link=image_link, source_link=source_link, category_id=post_category.id, author_id=post_author.id)
+ 
+ 
+ def gather_and_create_news(categories, languages, limit) -> List[Post]:
+@@ -23,7 +63,6 @@
+ 
+ 	for d in data['data']:
+ 		post = insert_post_from_mediastack(d)
+-
+ 		if post: response_array.append(post)
+ 
+-	return response_array
+\ No newline at end of file
++	return response_array
+Index: coolpress/press/urls.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from django.urls import path\r\n\r\nfrom . import views\r\n\r\nurlpatterns = [\r\n    # Home and About Page view\r\n    path('', views.index, name='index'),\r\n    path('accounts/profile/', views.index, name='index-after-login'),\r\n    path('about/', views.About.as_view(), name='about-page'),\r\n\r\n    # Post views\r\n    path('posts/', views.post_list, name='posts-list'), # All posts\r\n    path('posts/<int:author_id>/', views.PostsByAuthor.as_view(), name='post-author'), # Posts by author\r\n    path('post/<int:post_id>/', views.post_detail, name='post-detail'), # Specific post by id\r\n    path('post/add/', views.post_update, name='post-add'), # Add a post\r\n    path('post/update/<int:post_id>/', views.post_update, name='post-update'), # Update a post\r\n    path('post-filtered/', views.PostFilteredByText.as_view(), name='post-filtered'), # Posts filtered by search query\r\n\r\n    # Category views\r\n    path('categories/', views.category_list, name='category-list'), # All categories\r\n    path('category/<str:category_slug>/', views.category_posts, name='category-posts'), # Specific category\r\n    path('category/add/', views.category_update, name='category-add'), # Add a category\r\n    path('category/update/<int:category_id>/', views.category_update, name='category-update'), # Update category\r\n\r\n    # User views\r\n    path('users/', views.CooluserList.as_view(), name='cooluser-list'), # All users\r\n    path('user/<int:pk>', views.CooluserDetail.as_view(), name='cooluser-detail'), # Specific user\r\n]\r\n\r\n# Handling error pages (might cause images file load error in production)\r\nhandler404 = 'press.views.page_not_found'
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/urls.py b/coolpress/press/urls.py
+--- a/coolpress/press/urls.py	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/urls.py	(date 1636042070545)
+@@ -9,8 +9,8 @@
+     path('about/', views.About.as_view(), name='about-page'),
+ 
+     # Post views
+-    path('posts/', views.post_list, name='posts-list'), # All posts
+-    path('posts/<int:author_id>/', views.PostsByAuthor.as_view(), name='post-author'), # Posts by author
++    path('posts/', views.PostsList.as_view(), name='posts-list'), # All posts
++    path('posts/<str:username>/', views.PostsByAuthor.as_view(), name='post-author'), # Posts by author
+     path('post/<int:post_id>/', views.post_detail, name='post-detail'), # Specific post by id
+     path('post/add/', views.post_update, name='post-add'), # Add a post
+     path('post/update/<int:post_id>/', views.post_update, name='post-update'), # Update a post
+@@ -19,8 +19,8 @@
+     # Category views
+     path('categories/', views.category_list, name='category-list'), # All categories
+     path('category/<str:category_slug>/', views.category_posts, name='category-posts'), # Specific category
+-    path('category/add/', views.category_update, name='category-add'), # Add a category
+-    path('category/update/<int:category_id>/', views.category_update, name='category-update'), # Update category
++    path('category/add/', views.CategoryAdd.as_view(), name='category-add'), # Add a category
++    path('category/update/<int:category_id>/', views.CategoryUpdate.as_view(), name='category-update'), # Update category
+ 
+     # User views
+     path('users/', views.CooluserList.as_view(), name='cooluser-list'), # All users
+Index: coolpress/press/templates/posts/posts_list.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{% extends 'base.html' %}\r\n\r\n<!-- Tab title -->\r\n{% block title %} All Posts {% endblock %}\r\n\r\n<!-- Data for the navbar -->\r\n{% block navbar %}\r\n\t{% with header=\"Latest Posts\" back_btn_url=\"index\" header_btn_text=\"New Post\" header_btn_url=\"post-add\" %}\r\n\t\t{% include 'navbar.html' %}\r\n\t{% endwith %}\r\n{% endblock %}\r\n\r\n<!-- Main Page Content -->\r\n{% block content %}\r\n\t{% for post in post_list %}\r\n\t\t<div class=\"card mb-3 post\">\r\n\t\t\t<div class=\"row no-gutters\">\r\n\t\t\t\t{% if post.image_link %}\r\n\t\t\t\t<div class=\"col-md-4 post-image-box\">\r\n\t\t\t\t\t<img style=\"width: 100%; height: 100%; object-fit: cover;\" class=\"post-image\" src=\"{{post.image_link}}\"\r\n\t\t\t\t\t\t alt=\"{{post.title}}\">\r\n\t\t\t\t</div>\r\n\t\t\t\t{% endif %}\r\n\t\t\t\t<div class=\"{% if post.image_link %}col-md-8{% else %}col-md-12{% endif %}\">\r\n\t\t\t\t\t<div class=\"card-header\">\r\n\t\t\t\t\t\t{{post.category.slug}}\r\n\t\t\t\t\t</div>\r\n\t\t\t\t\t<div class=\"card-body\">\r\n\t\t\t\t\t\t<h5 class=\"card-title\">{{post.title}}</h5>\r\n\t\t\t\t\t\t<p class=\"card-text\">{{post.body|urlize}}</p>\r\n\t\t\t\t\t\t<p class=\"card-text\"><small class=\"text-muted\">{{post.last_update}}</small></p>\r\n\t\t\t\t\t\t<p class=\"card-text\">\r\n\t\t\t\t\t\t\t<a href=\"{% url 'post-author' post.author.user.id %}\" class=\"text-body text-underline-hover\">\r\n\t\t\t\t\t\t\t\t{{post.author.user.username}}\r\n\t\t\t\t\t\t\t</a>\r\n\t\t\t\t\t\t</p>\r\n\t\t\t\t\t</div>\r\n\t\t\t\t\t<div class=\"card-footer bg-transparent border-success\">\r\n\t\t\t\t\t\t<a href=\"{% url 'post-detail' post.id %}\" class=\"btn btn-primary\">View post</a>\r\n\t\t\t\t\t\t{% if user.is_authenticated and cooluser == post.author%}\r\n\t\t\t\t\t\t\t<a href=\"{% url 'post-update' post.id %}\" class=\"btn btn-info\">Update post</a>\r\n\t\t\t\t\t\t{% endif %}\r\n\t\t\t\t\t</div>\r\n\t\t\t\t</div>\r\n\t\t\t</div>\r\n\t\t</div>\r\n\t\t{% empty %}\r\n\r\n\t\t<p class=\"text-center font-weight-bold\">\r\n\t\t\tThere are no posts yet for this category, let's create some :D\r\n\t\t\t<a href=\"/admin\" class=\"btn btn-primary col-2 mt-3\">Go to admin</a>\r\n\t\t</p>\r\n\t{% endfor %}\r\n{% endblock %}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/templates/posts/posts_list.html b/coolpress/press/templates/posts/posts_list.html
+--- a/coolpress/press/templates/posts/posts_list.html	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/templates/posts/posts_list.html	(date 1636042070543)
+@@ -17,20 +17,19 @@
+ 			<div class="row no-gutters">
+ 				{% if post.image_link %}
+ 				<div class="col-md-4 post-image-box">
+-					<img style="width: 100%; height: 100%; object-fit: cover;" class="post-image" src="{{post.image_link}}"
+-						 alt="{{post.title}}">
++					<img style="width: 100%; height: 100%; object-fit: cover;" class="post-image" src="{{post.image_link}}" alt="{{post.title}}">
+ 				</div>
+ 				{% endif %}
+ 				<div class="{% if post.image_link %}col-md-8{% else %}col-md-12{% endif %}">
+ 					<div class="card-header">
+-						{{post.category.slug}}
++						<a class="text-dark" href="{% url 'category-posts' post.category.slug %}">#{{post.category.slug}}</a>
+ 					</div>
+ 					<div class="card-body">
+ 						<h5 class="card-title">{{post.title}}</h5>
+ 						<p class="card-text">{{post.body|urlize}}</p>
+ 						<p class="card-text"><small class="text-muted">{{post.last_update}}</small></p>
+ 						<p class="card-text">
+-							<a href="{% url 'post-author' post.author.user.id %}" class="text-body text-underline-hover">
++							<a href="{% url 'post-author' post.author.user.username %}" class="text-body text-underline-hover">
+ 								{{post.author.user.username}}
+ 							</a>
+ 						</p>
+Index: coolpress/press/models.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from enum import Enum\r\n\r\nfrom django.contrib.auth.models import User\r\nfrom django.db import models\r\nfrom django.urls import reverse\r\n\r\nfrom press.user_management import get_gravatar_link, get_github_repositories\r\n\r\n\r\nclass CoolUser(models.Model):\r\n    user = models.OneToOneField(User, on_delete=models.CASCADE)\r\n    github_profile = models.CharField(max_length=150, null=True, blank=True)\r\n    gh_repositories = models.IntegerField(null=True, blank=True)\r\n    gravatar_link = models.CharField(max_length=400, null=True, blank=True)\r\n\r\n    def __str__(self):\r\n        user = self.user\r\n        return f'{user.first_name} {user.last_name} ({user.username})'\r\n\r\n    def save(self, *args, **kwargs):\r\n        super(CoolUser, self).save(*args, **kwargs)\r\n\r\n        if self.user.email:\r\n            email = self.user.email\r\n            gravatar_link = get_gravatar_link(email)\r\n            if gravatar_link != self.gravatar_link:\r\n                self.gravatar_link = gravatar_link\r\n                self.save()\r\n        gh_repositories = None\r\n        if self.github_profile:\r\n            gh_repositories = get_github_repositories(self.github_profile)\r\n\r\n        if gh_repositories != self.gh_repositories:\r\n            self.gh_repositories = gh_repositories\r\n            self.save()\r\n\r\nclass Category(models.Model):\r\n    class Meta:\r\n        verbose_name_plural = \"categories\"\r\n\r\n    label = models.CharField(max_length=200)\r\n    slug = models.SlugField(max_length=200, unique=True)\r\n\r\n    def get_absolute_url(self):\r\n        return reverse('category-detail', kwargs={'pk': self.pk})\r\n\r\n    def __str__(self):\r\n        return f'{self.slug}'\r\n\r\n\r\nclass PostStatus(Enum):\r\n    DRAFT = 'DRAFT'\r\n    PUBLISHED = 'PUBLISHED'\r\n\r\n\r\nPOST_LABELED_STATUS = [\r\n    (PostStatus.DRAFT.value, 'Draft'),\r\n    (PostStatus.PUBLISHED.value, 'Published post'),\r\n]\r\n\r\n\r\nclass Post(models.Model):\r\n    title = models.CharField(max_length=400)\r\n    body = models.TextField()\r\n    image_link = models.CharField(max_length=400, null=True, blank=True)\r\n\r\n    word_cloud_link = models.CharField(max_length=400, null=True, blank=True)\r\n\r\n    source_link = models.CharField(max_length=400, null=True, blank=True)\r\n    source_label = models.CharField(max_length=400, null=True, blank=True)\r\n\r\n    status = models.CharField(\r\n        max_length=32,\r\n        choices=POST_LABELED_STATUS,\r\n        default=PostStatus.DRAFT,\r\n    )\r\n\r\n    author = models.ForeignKey(CoolUser, on_delete=models.CASCADE)\r\n    category = models.ForeignKey(Category, on_delete=models.CASCADE)\r\n\r\n    creation_date = models.DateTimeField(auto_now_add=True)\r\n    last_update = models.DateTimeField(auto_now=True)\r\n\r\n    def __str__(self):\r\n        return f'{self.title} - by {self.author.user.username}'
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/models.py b/coolpress/press/models.py
+--- a/coolpress/press/models.py	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/models.py	(date 1636042070537)
+@@ -11,6 +11,8 @@
+     user = models.OneToOneField(User, on_delete=models.CASCADE)
+     github_profile = models.CharField(max_length=150, null=True, blank=True)
+     gh_repositories = models.IntegerField(null=True, blank=True)
++    # gh_followers = models.IntegerField(null=True, blank=True)
++    # last_followers_check = models.DateTimeField(null=True, blank=True)
+     gravatar_link = models.CharField(max_length=400, null=True, blank=True)
+ 
+     def __str__(self):
+Index: coolpress/press/templates/posts/posts_detail.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{% extends 'base.html' %}\r\n\r\n<!-- Tab title -->\r\n{% block title %}Post - {{post.title}}{% endblock %}\r\n\r\n<!-- Data for the navbar -->\r\n{% block navbar %}\r\n\t{% with header=post.title back_btn_url=\"posts-list\" header_btn_text=\"New Post\" header_btn_url=\"post-add\" %}\r\n\t\t{% include 'navbar.html' %}\r\n\t{% endwith %}\r\n{% endblock %}\r\n\r\n<!-- Main Page Content -->\r\n{% block content %}\r\n    <div class=\"d-flex justify-content-between align-items-center\">\r\n        <p>Showing post with ID: <b>{{post.id}}</b></p>\r\n        <div class=\"text-right\">\r\n            {% if user.is_authenticated and cooluser == post.author and post.id %}\r\n                <a class=\"btn btn-info new-post-btn\" role=\"button\" href=\"{% url 'post-update' post.id %}\">\r\n                    Update Post\r\n                </a>\r\n            {% endif %}\r\n        </div>\r\n    </div>\r\n\r\n    <div class=\"card mb-3 post\">\r\n        <div class=\"row no-gutters\">\r\n            <div class=\"{% if post.image_link %}col-md-12{% else %}col-md-12{% endif %}\">\r\n                <div class=\"card-header\">\r\n                    <a>#{{post.category.slug}}</a>\r\n                </div>\r\n                <div class=\"card-body\">\r\n                    <p class=\"card-text\"><small class=\"text-muted\">{{post.last_update}}</small></p>\r\n                    <p class=\"card-text\">{{post.body|urlize}}</p>\r\n                    <p class=\"card-text\">\r\n                        <span>By:</span>\r\n                        <b>\r\n                            <a href=\"{% url 'post-author' post.author.user.id %}\" class=\"text-body text-underline-hover\">\r\n                                {{post.author.user.username}}\r\n                            </a>\r\n                        </b>\r\n                    </p>\r\n                </div>\r\n            </div>\r\n            {% if post.image_link %}\r\n            <div class=\"col-md-12 post-image-box\">\r\n                <img style=\"width: 100%; height: 100%; object-fit: cover;\" class=\"post-image\" src=\"{{post.image_link}}\" alt=\"{{post.title}}\">\r\n            </div>\r\n            {% endif %}\r\n        </div>\r\n    </div>\r\n{% endblock %}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/templates/posts/posts_detail.html b/coolpress/press/templates/posts/posts_detail.html
+--- a/coolpress/press/templates/posts/posts_detail.html	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/templates/posts/posts_detail.html	(date 1636042070542)
+@@ -27,7 +27,7 @@
+         <div class="row no-gutters">
+             <div class="{% if post.image_link %}col-md-12{% else %}col-md-12{% endif %}">
+                 <div class="card-header">
+-                    <a>#{{post.category.slug}}</a>
++                    <a class="text-dark" href="{% url 'category-posts' post.category.slug %}">#{{post.category.slug}}</a>
+                 </div>
+                 <div class="card-body">
+                     <p class="card-text"><small class="text-muted">{{post.last_update}}</small></p>
+@@ -35,7 +35,7 @@
+                     <p class="card-text">
+                         <span>By:</span>
+                         <b>
+-                            <a href="{% url 'post-author' post.author.user.id %}" class="text-body text-underline-hover">
++                            <a href="{% url 'post-author' post.author.user.username %}" class="text-body text-underline-hover">
+                                 {{post.author.user.username}}
+                             </a>
+                         </b>
+Index: coolpress/press/templates/categories/category_update.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><h1> To Be DOne</h1>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/templates/categories/category_update.html b/coolpress/press/templates/categories/category_update.html
+--- a/coolpress/press/templates/categories/category_update.html	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/templates/categories/category_update.html	(date 1636042070540)
+@@ -1,1 +1,24 @@
+-<h1> To Be DOne</h1>
+\ No newline at end of file
++{% extends 'base.html' %}
++
++<!-- Tab title -->
++{% block title %} Create or Update Category {% endblock %}
++
++<!-- Data for the navbar -->
++{% block navbar %}
++	{% with header="Create or Update Post" back_btn_url="index" %}
++		{% include 'navbar.html' %}
++	{% endwith %}
++{% endblock %}
++
++<!-- Main Page Content -->
++{% block content %}
++	<form method="post">
++		{% csrf_token %}
++		<div class="form-group">
++			{{form}}
++		</div>
++		<div class="text-center">
++			<input class="btn btn-success mt-3" type="submit" value="Submit">
++		</div>
++	</form>
++{% endblock %}
+\ No newline at end of file
+Index: coolpress/press/templates/categories/category_posts.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{% extends 'base.html' %}\r\n\r\n<!-- Tab title -->\r\n{% block title %} All Posts with #{{category}} {% endblock %}\r\n\r\n<!-- Data for the navbar -->\r\n{% block navbar %}\r\n\t{% with header=\"Listing all possible posts for '{{category}}' category\" back_btn_url=\"posts-list\" header_btn_text=\"New Post\" header_btn_url=\"post-add\" %}\r\n\t\t{% include 'navbar.html' %}\r\n\t{% endwith %}\r\n{% endblock %}\r\n\r\n<!-- Main Page Content -->\r\n{% block content %}\r\n    {% for post in posts %}\r\n        <div class=\"card mb-3 post\">\r\n            <div class=\"row no-gutters\">\r\n                {% if post.image_link %}\r\n                    <div class=\"col-md-4 post-image-box\">\r\n                        <img style=\"width: 100%; height: 100%; object-fit: cover;\" class=\"post-image\" src=\"{{post.image_link}}\" alt=\"{{post.title}}\">\r\n                    </div>\r\n                {% endif %}\r\n                <div class=\"{% if post.image_link %}col-md-8{% else %}col-md-12{% endif %}\">\r\n                    <div class=\"card-header\">\r\n                        #{{post.category.slug}}\r\n                    </div>\r\n                    <div class=\"card-body\">\r\n                        <h5 class=\"card-title\">{{post.title}}</h5>\r\n                        <p class=\"card-text\">{{post.body|urlize}}</p>\r\n                        <p class=\"card-text\"><small class=\"text-muted\">{{post.last_update}}</small></p>\r\n                        <p class=\"card-text\">{{post.author.user.username}}</p>\r\n                    </div>\r\n                    <div class=\"card-footer bg-transparent border-success\">\r\n                        {% if post.id %}\r\n                            <a href=\"{% url 'post-detail' post.id %}\" class=\"btn btn-primary\">Details</a>\r\n                        {% endif %}\r\n                    </div>\r\n                </div>\r\n            </div>\r\n        </div>\r\n        {% empty %}\r\n\r\n        <p class=\"text-center font-weight-bold d-flex flex-column align-items-center\">\r\n            There are no posts yet for this category, let's create some :D\r\n            <a href=\"/admin\" class=\"btn btn-primary col-2 mt-3\">Go to admin</a>\r\n        </p>\r\n    {% endfor %}\r\n{% endblock %}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/templates/categories/category_posts.html b/coolpress/press/templates/categories/category_posts.html
+--- a/coolpress/press/templates/categories/category_posts.html	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/templates/categories/category_posts.html	(date 1636042070540)
+@@ -5,7 +5,7 @@
+ 
+ <!-- Data for the navbar -->
+ {% block navbar %}
+-	{% with header="Listing all possible posts for '{{category}}' category" back_btn_url="posts-list" header_btn_text="New Post" header_btn_url="post-add" %}
++	{% with header=posts_by back_btn_url="posts-list" header_btn_text="New Post" header_btn_url="post-add" %}
+ 		{% include 'navbar.html' %}
+ 	{% endwith %}
+ {% endblock %}
+@@ -22,13 +22,17 @@
+                 {% endif %}
+                 <div class="{% if post.image_link %}col-md-8{% else %}col-md-12{% endif %}">
+                     <div class="card-header">
+-                        #{{post.category.slug}}
++                        <a class="text-dark" href="{% url 'category-posts' post.category.slug %}">#{{post.category.slug}}</a>
+                     </div>
+                     <div class="card-body">
+                         <h5 class="card-title">{{post.title}}</h5>
+                         <p class="card-text">{{post.body|urlize}}</p>
+                         <p class="card-text"><small class="text-muted">{{post.last_update}}</small></p>
+-                        <p class="card-text">{{post.author.user.username}}</p>
++                        <p class="card-text">
++                        	<a href="{% url 'post-author' post.author.user.username %}" class="text-body text-underline-hover">
++								{{post.author.user.username}}
++							</a>
++                        </p>
+                     </div>
+                     <div class="card-footer bg-transparent border-success">
+                         {% if post.id %}
+Index: coolpress/press/templates/categories/category_list.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{% extends 'base.html' %}\r\n\r\n<!-- Tab title -->\r\n{% block title %} All Post Categories} {% endblock %}\r\n\r\n<!-- Data for the navbar -->\r\n{% block navbar %}\r\n\t{% with header=\"All Post Categories\" %}\r\n\t\t{% include 'navbar.html' %}\r\n\t{% endwith %}\r\n{% endblock %}\r\n\r\n<!-- Main Page Content -->\r\n{% block content %}\r\n\t{% if user.is_authenticated %}\r\n\t\t<div class=\"text-right mb-2\">\r\n\t\t\t<a class=\"btn btn-info\" href=\"{% url 'category-add' %}\">Add Category</a>\r\n\t\t</div>\r\n\t{% endif %}\r\n\r\n\t<table class=\"table table-striped\">\r\n\t\t<thead>\r\n\t\t\t<tr>\r\n\t\t\t\t<th>id</th>\r\n\t\t\t\t<th>Slug</th>\r\n\t\t\t\t<th>Label</th>\r\n\t\t\t\t<th>Number of Posts</th>\r\n\t\t\t\t<th>Actions</th>\r\n\t\t\t</tr>\r\n\t\t</thead>\r\n\t\t<tbody>\r\n\t\t\t{% for category in categories %}\r\n\t\t\t\t<tr scope=\"row\">\r\n\t\t\t\t\t<td>{{category.id}}</td>\r\n\t\t\t\t\t<td>{{category.slug}}</td>\r\n\t\t\t\t\t<td>{{category.label}}</td>\r\n\t\t\t\t\t<td>\r\n\t\t\t\t\t\t<a href=\"{% url 'category-posts' category.slug %}\">\r\n\t\t\t\t\t\t\t{{category.post_set.count}}\r\n\t\t\t\t\t\t</a>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td>\r\n\t\t\t\t\t\t{% if user.is_authenticated %}\r\n\t\t\t\t\t\t\t<a class=\"btn btn-success\" href=\"{% url 'category-update' category.id %}\">Edit</a>\r\n\t\t\t\t\t\t{% endif %}\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t{% endfor %}\r\n\t\t</tbody>\r\n\t</table>\r\n{% endblock %}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/templates/categories/category_list.html b/coolpress/press/templates/categories/category_list.html
+--- a/coolpress/press/templates/categories/category_list.html	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/templates/categories/category_list.html	(date 1636042070538)
+@@ -5,19 +5,13 @@
+ 
+ <!-- Data for the navbar -->
+ {% block navbar %}
+-	{% with header="All Post Categories" %}
++	{% with header="All Post Categories" back_btn_url="index" header_btn_text="New Category" header_btn_url="category-add" %}
+ 		{% include 'navbar.html' %}
+ 	{% endwith %}
+ {% endblock %}
+ 
+ <!-- Main Page Content -->
+ {% block content %}
+-	{% if user.is_authenticated %}
+-		<div class="text-right mb-2">
+-			<a class="btn btn-info" href="{% url 'category-add' %}">Add Category</a>
+-		</div>
+-	{% endif %}
+-
+ 	<table class="table table-striped">
+ 		<thead>
+ 			<tr>
+@@ -41,7 +35,7 @@
+ 					</td>
+ 					<td>
+ 						{% if user.is_authenticated %}
+-							<a class="btn btn-success" href="{% url 'category-update' category.id %}">Edit</a>
++							<a class="btn btn-info" href="{% url 'category-update' category.id %}">Edit</a>
+ 						{% endif %}
+ 					</td>
+ 				</tr>
+Index: coolpress/press/templates/pagination.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{% if is_paginated %}\r\n\t<nav aria-label=\"...\">\r\n\t\t<ul class=\"pagination justify-content-center\">\r\n\t\t\t<li class=\"page-item {% if page_obj.number == 1 %}disabled{% endif %}\">\r\n\t\t\t\t<a class=\"page-link\" href=\"?page=1{%if search_data %}&q={{search_data}}{%endif%}\">&laquo; First</a>\r\n\t\t\t</li>\r\n\t\t\t<li class=\"page-item {% if not page_obj.has_previous %} disabled {% endif %}\">\r\n\t\t\t\t<a class=\"page-link\"\r\n\t\t\t\t   href=\"{% if page_obj.has_previous %}?page={{page_obj.previous_page_number}}{%else%}#{%endif%}{%if search_data %}&q={{search_data}}{%endif%}\" tabindex=\"-1\">Previous</a>\r\n\t\t\t</li>\r\n\t\t\t<li class=\"page-item active\">\r\n\t\t\t\t<a class=\"page-link\" href=\"#\">Page {{page_obj.number}} of {{page_obj.paginator.num_pages}}</a>\r\n\t\t\t</li>\r\n\t\t\t<li class=\"page-item {% if not page_obj.has_next %} disabled {% endif %}\">\r\n\t\t\t\t<a class=\"page-link\" href=\"{% if page_obj.has_next %}?page={{page_obj.next_page_number}}{%else%}#{%endif%}\">Next</a>\r\n\t\t\t</li>\r\n\t\t\t<li class=\"page-item\r\n\t\t\t  {% if page_obj.number == page_obj.paginator.num_pages %}disabled{% endif %}\"><a class=\"page-link\" href=\"?page={{page_obj.paginator.num_pages}}{%if search_data %}&q={{search_data}}{%endif%}\">Last &raquo;</a>\r\n\t\t\t</li>\r\n\t\t</ul>\r\n\t</nav>\r\n{% endif %}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/templates/pagination.html b/coolpress/press/templates/pagination.html
+--- a/coolpress/press/templates/pagination.html	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/templates/pagination.html	(date 1636042070541)
+@@ -1,6 +1,6 @@
+ {% if is_paginated %}
+-	<nav aria-label="...">
+-		<ul class="pagination justify-content-center">
++	<nav>
++		<ul class="pagination justify-content-center mt-5">
+ 			<li class="page-item {% if page_obj.number == 1 %}disabled{% endif %}">
+ 				<a class="page-link" href="?page=1{%if search_data %}&q={{search_data}}{%endif%}">&laquo; First</a>
+ 			</li>
+Index: coolpress/press/templates/posts/posts_author.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{% extends 'base.html' %}\r\n\r\n<!-- Tab title -->\r\n{% block title %} Posts by {{user_name}} {% endblock %}\r\n\r\n<!-- Data for the navbar -->\r\n{% block navbar %}\r\n\t{% with header=\"Posts by user... {{}}\" back_btn_url=\"index\" header_btn_text=\"New Post\" header_btn_url=\"post-add\" %}\r\n\t\t{% include 'navbar.html' %}\r\n\t{% endwith %}\r\n{% endblock %}\r\n\r\n<!-- Main Page Content -->\r\n{% block content %}\r\n\t<h1>-{{user_name}}-</h1>\r\n\t{% for post in post_list %}\r\n\t\t<div class=\"card mb-3 post\">\r\n\t\t\t<div class=\"row no-gutters\">\r\n\t\t\t\t{% if post.image_link %}\r\n\t\t\t\t<div class=\"col-md-4 post-image-box\">\r\n\t\t\t\t\t<img style=\"width: 100%; height: 100%; object-fit: cover;\" class=\"post-image\" src=\"{{post.image_link}}\"\r\n\t\t\t\t\t\t alt=\"{{post.title}}\">\r\n\t\t\t\t</div>\r\n\t\t\t\t{% endif %}\r\n\t\t\t\t<div class=\"{% if post.image_link %}col-md-8{% else %}col-md-12{% endif %}\">\r\n\t\t\t\t\t<div class=\"card-header\">\r\n\t\t\t\t\t\t{{post.category.slug}}\r\n\t\t\t\t\t</div>\r\n\t\t\t\t\t<div class=\"card-body\">\r\n\t\t\t\t\t\t<h5 class=\"card-title\">{{post.title}}</h5>\r\n\t\t\t\t\t\t<p class=\"card-text\">{{post.body|urlize}}</p>\r\n\t\t\t\t\t\t<p class=\"card-text\"><small class=\"text-muted\">{{post.last_update}}</small></p>\r\n\t\t\t\t\t\t<p class=\"card-text\">\r\n\t\t\t\t\t\t\t<a href=\"{% url 'post-author' post.author.user.id %}\" class=\"text-body text-underline-hover\">\r\n\t\t\t\t\t\t\t\t{{post.author.user.username}}\r\n\t\t\t\t\t\t\t</a>\r\n\t\t\t\t\t\t</p>\r\n\t\t\t\t\t</div>\r\n\t\t\t\t\t<div class=\"card-footer bg-transparent border-success\">\r\n\t\t\t\t\t\t<a href=\"{% url 'post-detail' post.id %}\" class=\"btn btn-primary\">View post</a>\r\n\t\t\t\t\t\t{% if user.is_authenticated and cooluser == post.author%}\r\n\t\t\t\t\t\t\t<a href=\"{% url 'post-update' post.id %}\" class=\"btn btn-info\">Update post</a>\r\n\t\t\t\t\t\t{% endif %}\r\n\t\t\t\t\t</div>\r\n\t\t\t\t</div>\r\n\t\t\t</div>\r\n\t\t</div>\r\n\t\t{% empty %}\r\n\r\n\t\t<p class=\"text-center font-weight-bold\">\r\n\t\t\tThere are no posts yet for this category, let's create some :D\r\n\t\t\t<a href=\"/admin\" class=\"btn btn-primary col-2 mt-3\">Go to admin</a>\r\n\t\t</p>\r\n\t{% endfor %}\r\n{% endblock %}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/templates/posts/posts_author.html b/coolpress/press/templates/posts/posts_author.html
+--- a/coolpress/press/templates/posts/posts_author.html	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/templates/posts/posts_author.html	(date 1636042070542)
+@@ -1,25 +1,23 @@
+ {% extends 'base.html' %}
+ 
+ <!-- Tab title -->
+-{% block title %} Posts by {{user_name}} {% endblock %}
++{% block title %} Posts by {{username}} {% endblock %}
+ 
+ <!-- Data for the navbar -->
+ {% block navbar %}
+-	{% with header="Posts by user... {{}}" back_btn_url="index" header_btn_text="New Post" header_btn_url="post-add" %}
++	{% with header=posts_by back_btn_url="index" header_btn_text="New Post" header_btn_url="post-add" %}
+ 		{% include 'navbar.html' %}
+ 	{% endwith %}
+ {% endblock %}
+ 
+ <!-- Main Page Content -->
+ {% block content %}
+-	<h1>-{{user_name}}-</h1>
+ 	{% for post in post_list %}
+ 		<div class="card mb-3 post">
+ 			<div class="row no-gutters">
+ 				{% if post.image_link %}
+ 				<div class="col-md-4 post-image-box">
+-					<img style="width: 100%; height: 100%; object-fit: cover;" class="post-image" src="{{post.image_link}}"
+-						 alt="{{post.title}}">
++					<img style="width: 100%; height: 100%; object-fit: cover;" class="post-image" src="{{post.image_link}}" alt="{{post.title}}">
+ 				</div>
+ 				{% endif %}
+ 				<div class="{% if post.image_link %}col-md-8{% else %}col-md-12{% endif %}">
+@@ -31,7 +29,7 @@
+ 						<p class="card-text">{{post.body|urlize}}</p>
+ 						<p class="card-text"><small class="text-muted">{{post.last_update}}</small></p>
+ 						<p class="card-text">
+-							<a href="{% url 'post-author' post.author.user.id %}" class="text-body text-underline-hover">
++							<a href="{% url 'post-author' post.author.user.username %}" class="text-body text-underline-hover">
+ 								{{post.author.user.username}}
+ 							</a>
+ 						</p>
+@@ -47,7 +45,7 @@
+ 		</div>
+ 		{% empty %}
+ 
+-		<p class="text-center font-weight-bold">
++		<p class="d-flex flex-column align-items-center text-center font-weight-bold">
+ 			There are no posts yet for this category, let's create some :D
+ 			<a href="/admin" class="btn btn-primary col-2 mt-3">Go to admin</a>
+ 		</p>
+Index: coolpress/press/user_management.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from typing import Optional\r\n\r\nfrom bs4 import BeautifulSoup\r\nfrom libgravatar import Gravatar\r\nfrom pip._vendor import requests\r\n\r\n\r\ndef get_gravatar_link(email: str) -> Optional[str]:\r\n    g = Gravatar(email)\r\n    return g.get_image()\r\n\r\n\r\n\r\ndef extract_github_repositories(content) -> Optional[int]:\r\n    soup = BeautifulSoup(content, 'html.parser')\r\n    css_selector = 'div.UnderlineNav > nav > a:nth-child(2) > span'\r\n    css_selector = 'a[href$=\"repositories\"] span'\r\n    repositories_info = soup.select_one(css_selector)\r\n    return int(repositories_info.text)\r\n\r\n\r\ndef get_github_repositories(github_profile):\r\n    url = f'https://github.com/{github_profile}'\r\n    response = requests.get(url)\r\n    gh_repositories = None\r\n    if response.status_code == 200:\r\n        gh_repositories = extract_github_repositories(response.content)\r\n    return gh_repositories
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/coolpress/press/user_management.py b/coolpress/press/user_management.py
+--- a/coolpress/press/user_management.py	(revision 859cabbd64d1d057b3772177e01b3e015f29640d)
++++ b/coolpress/press/user_management.py	(date 1636042070545)
+@@ -10,7 +10,6 @@
+     return g.get_image()
+ 
+ 
+-
+ def extract_github_repositories(content) -> Optional[int]:
+     soup = BeautifulSoup(content, 'html.parser')
+     css_selector = 'div.UnderlineNav > nav > a:nth-child(2) > span'
