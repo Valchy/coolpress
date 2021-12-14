@@ -75,7 +75,8 @@ class PostsByAuthor(TemplateView):
 		context['username'] = username
 
 		user = User.objects.get(username=username)
-		posts = Post.objects.filter(author_id=user.id, status=PostStatus.PUBLISHED.value).order_by('-pk')
+		cu = CoolUser.objects.get(user_id=user.id)
+		posts = Post.objects.filter(author_id=cu.id, status=PostStatus.PUBLISHED.value).order_by('-pk')
 		context['post_list'] = posts
 
 		context['posts_by'] = f'Posts by {username}'
@@ -87,6 +88,7 @@ class PostsByAuthor(TemplateView):
 def post_list(request):
 	post_list = Post.objects.filter(status=PostStatus.PUBLISHED.value).order_by('-last_update')
 	return render(request, 'posts/posts_list.html', {'post_list': post_list})
+
 
 # Displaying all posts (used)
 class PostsList(ListView):
